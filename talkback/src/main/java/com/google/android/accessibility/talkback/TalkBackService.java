@@ -153,9 +153,11 @@ import com.google.android.accessibility.talkback.compositor.PreparedFocusSpeech;
 import com.google.android.accessibility.talkback.compositor.roledescription.RoleDescriptionExtractor.DescriptionOrder;
 import com.google.android.accessibility.talkback.contextmenu.ListMenuManager;
 import com.google.android.accessibility.talkback.controller.TelevisionNavigationController;
+import com.google.android.accessibility.talkback.controlsounds.ControlSoundsSettings;
 import com.google.android.accessibility.talkback.directtouch.DirectTouchController;
 import com.google.android.accessibility.talkback.eventprocessor.AccessibilityEventProcessor;
 import com.google.android.accessibility.talkback.eventprocessor.AccessibilityEventProcessor.TalkBackListener;
+import com.google.android.accessibility.talkback.eventprocessor.ProcessorEmojiTraversal;
 import com.google.android.accessibility.talkback.eventprocessor.ProcessorEventQueue;
 import com.google.android.accessibility.talkback.eventprocessor.ProcessorGestureVibrator;
 import com.google.android.accessibility.talkback.eventprocessor.ProcessorMagnification;
@@ -215,6 +217,8 @@ import com.google.android.accessibility.talkback.pause.PauseController;
 import com.google.android.accessibility.talkback.preference.PreferencesActivityUtils;
 import com.google.android.accessibility.talkback.selector.SelectorController;
 import com.google.android.accessibility.talkback.selector.SelectorController.SelectorEventNotifier;
+import com.google.android.accessibility.talkback.soundthemes.SoundThemes;
+import com.google.android.accessibility.talkback.soundthemes.ThemeFeedback;
 import com.google.android.accessibility.talkback.speech.SpeechCacheController;
 import com.google.android.accessibility.talkback.speechbubble.DisableTalkBackDialog;
 import com.google.android.accessibility.talkback.migration.AppIdHandOver;
@@ -276,6 +280,7 @@ import com.google.android.accessibility.utils.monitor.SpeechStateMonitor;
 import com.google.android.accessibility.utils.monitor.TouchMonitor;
 import com.google.android.accessibility.utils.output.ActorStateProvider;
 import com.google.android.accessibility.utils.output.EditTextActionHistory;
+import com.google.android.accessibility.utils.output.EmojiSpeech;
 import com.google.android.accessibility.utils.output.FailoverTextToSpeech;
 import com.google.android.accessibility.utils.output.FeedbackController;
 import com.google.android.accessibility.utils.output.FeedbackProcessingUtils;
@@ -286,6 +291,8 @@ import com.google.android.accessibility.utils.output.SpeechController.UtteranceC
 import com.google.android.accessibility.utils.output.SpeechControllerImpl;
 import com.google.android.accessibility.utils.output.SpeechControllerImpl.CapitalLetterHandlingMethod;
 import com.google.android.accessibility.utils.output.TextFormattingUtils;
+import com.google.android.accessibility.utils.output.ThemeSounds;
+import com.google.android.accessibility.utils.output.ThemeVibrations;
 import com.google.android.libraries.accessibility.utils.log.LogUtils;
 import com.google.android.libraries.accessibility.utils.servicecompat.AccessibilityServiceCompat;
 import com.google.common.collect.ImmutableList;
@@ -300,6 +307,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalInt;
 import java.util.Set;
@@ -2353,6 +2361,7 @@ public class TalkBackService extends AccessibilityServiceCompat
 
     addEventListener(processorEventQueue);
     addEventListener(processorPhoneticLetters);
+    addEventListener(new ProcessorEmojiTraversal(this, pipeline.getFeedbackReturner()));
 
     // Create window event interpreter and announcer.
     windowEventInterpreter = new WindowEventInterpreter(this, displayMonitor);
@@ -2463,13 +2472,18 @@ public class TalkBackService extends AccessibilityServiceCompat
             new TalkBackPrivateMethodProvider() {
               @Override
               public void requestTouchExploration(boolean enabled) {
-                TouchInteractionMonitor touchInteractionMonitor =
-                    displayIdToTouchInteractionMonitors.get(Display.DEFAULT_DISPLAY);
-                if (FeatureSupport.supportGestureDetection() && touchInteractionMonitor != null) {
-                  touchInteractionMonitor.requestA11yTouchExploreState(enabled);
-                } else {
-                  getInstance().requestTouchExploration(enabled);
+                // TouchInteractionMonitor implements a callback from Android 13, so it cannot even
+                // be loaded before then. Getting it before the check crashed the braille keyboard
+                // on older Android, as it turns off touch exploration when it opens.
+                if (FeatureSupport.supportGestureDetection()) {
+                  TouchInteractionMonitor touchInteractionMonitor =
+                      displayIdToTouchInteractionMonitors.get(Display.DEFAULT_DISPLAY);
+                  if (touchInteractionMonitor != null) {
+                    touchInteractionMonitor.requestA11yTouchExploreState(enabled);
+                    return;
+                  }
                 }
+                getInstance().requestTouchExploration(enabled);
               }
 
               @Override
@@ -2917,6 +2931,10 @@ public class TalkBackService extends AccessibilityServiceCompat
       dimScreenController.shutdown();
     }
 
+    // The saved reading order holds nodes, which would outlive the service and could be reused,
+    // stale, when Backtalk is turned on again.
+    TraversalTreeCache.clear("shutdown");
+
     if (fullScreenReadActor != null) {
       fullScreenReadActor.shutdown();
     }
@@ -2935,6 +2953,7 @@ public class TalkBackService extends AccessibilityServiceCompat
     if (feedbackController != null) {
       feedbackController.shutdown();
     }
+    EmojiSpeech.release();
     if (audioDeviceRouter != null) {
       audioDeviceRouter.shutdown();
       audioDeviceRouter = null;
@@ -3064,6 +3083,10 @@ public class TalkBackService extends AccessibilityServiceCompat
 
     FocusProcessorForLogicalNavigation.setWrapAround(
         getBooleanPref(R.string.pref_wrap_around_key, R.bool.pref_wrap_around_default));
+    EventFilter.setSpeakItemsBeforeScroll(
+        getBooleanPref(
+            R.string.pref_speak_items_before_scroll_key,
+            R.bool.pref_speak_items_before_scroll_default));
 
     // If performance statistics changing enabled setting... clear collected stats.
     boolean performanceEnabled =
@@ -3159,6 +3182,17 @@ public class TalkBackService extends AccessibilityServiceCompat
                 res,
                 R.string.pref_punctuation_verbosity,
                 R.string.pref_punctuation_verbosity_default)));
+    EmojiSpeech.setMode(
+        this,
+        SharedPreferencesUtils.getStringPref(
+            prefs, res, R.string.pref_emoji_speech_key, R.string.pref_emoji_speech_default));
+    EmojiSpeech.setRepeatCount(
+        Integer.parseInt(
+            SharedPreferencesUtils.getStringPref(
+                prefs,
+                res,
+                R.string.pref_emoji_repeat_count_key,
+                R.string.pref_emoji_repeat_count_default)));
 
     int formattingOptions = TextFormattingUtils.OPTION_NONE;
     int formattingFeedbackMode = TextFormattingUtils.FEEDBACK_MODE_NONE;
@@ -3269,11 +3303,42 @@ public class TalkBackService extends AccessibilityServiceCompat
     boolean auditoryEnabled =
         getBooleanPref(R.string.pref_soundback_key, R.bool.pref_soundback_default);
     feedbackController.setAuditoryEnabled(auditoryEnabled);
+    // Before the theme's sounds are loaded below, so that they load with the new volume.
+    feedbackController.setUseAccessibilityStream(
+        FailoverTextToSpeech.shouldUseAccessibilityStream(this));
+    feedbackController.setLowLatencyAudio(
+        prefs.getBoolean(
+            FailoverTextToSpeech.PREF_LOW_LATENCY_AUDIO_KEY,
+            FailoverTextToSpeech.LOW_LATENCY_AUDIO_DEFAULT));
     IndividualFeedbackSettings.INSTANCE.migrate(prefs);
-    feedbackController.setMutedAuditory(
-        IndividualFeedbackSettings.INSTANCE.mutedSoundResources(prefs));
-    feedbackController.setMutedHaptic(
-        IndividualFeedbackSettings.INSTANCE.mutedVibrationResources(prefs));
+    Set<String> mutedSounds = IndividualFeedbackSettings.INSTANCE.mutedSoundResources(prefs);
+    feedbackController.setMutedAuditory(mutedSounds);
+    Set<String> mutedVibrations =
+        IndividualFeedbackSettings.INSTANCE.mutedVibrationResources(prefs);
+    feedbackController.setMutedHaptic(mutedVibrations);
+    ThemeFeedback soundTheme = SoundThemes.feedback(this, prefs);
+    Map<String, String> customSounds = soundTheme.getSoundPaths();
+    feedbackController.setCustomSounds(customSounds);
+    Map<String, int[]> themeVibrations = soundTheme.vibrationsPlaying(mutedVibrations);
+    feedbackController.setThemeVibrations(themeVibrations);
+    // For the braille keyboard and direct touch, which play their own sounds and vibrations.
+    ThemeVibrations.set(themeVibrations);
+    ThemeSounds.set(SoundThemes.brailleTypingSounds(customSounds));
+    feedbackController.setSpatialMode(ControlSoundsSettings.spatialMode(prefs));
+    // A control's sound is asked for if it can be heard or felt, so with sound feedback off its
+    // vibration still tells what kind of control it is.
+    Set<Integer> heardControls =
+        ControlSoundsSettings.playingSounds(
+            prefs, auditoryEnabled, mutedSounds, customSounds.keySet());
+    Set<Integer> controlFeedback = new HashSet<>(heardControls);
+    controlFeedback.addAll(
+        ControlSoundsSettings.vibratingSounds(
+            prefs, hapticEnabled, mutedVibrations, soundTheme.felt()));
+    globalVariables.setControlSounds(
+        auditoryEnabled && ControlSoundsSettings.isOn(prefs),
+        controlFeedback,
+        heardControls,
+        ControlSoundsSettings.speakRoles(prefs));
 
     if (audioDeviceRouter != null) {
       String audioOutputPref =

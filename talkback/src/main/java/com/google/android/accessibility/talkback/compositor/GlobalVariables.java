@@ -39,6 +39,7 @@ import com.google.android.accessibility.talkback.compositor.roledescription.Role
 import com.google.android.accessibility.talkback.compositor.rule.EventTypeViewAccessibilityFocusedFeedbackRule;
 import com.google.android.accessibility.talkback.compositor.rule.InputTextFeedbackRules;
 import com.google.android.accessibility.talkback.compositor.rule.MagnificationStateChangedFeedbackRule;
+import com.google.android.accessibility.talkback.controlsounds.ControlSounds;
 import com.google.android.accessibility.talkback.flags.FeatureFlagReader;
 import com.google.android.accessibility.talkback.keyboard.KeyComboManager;
 import com.google.android.accessibility.talkback.keyboard.KeyComboModel;
@@ -56,9 +57,11 @@ import com.google.android.accessibility.utils.monitor.CollectionState;
 import com.google.android.accessibility.utils.monitor.InputModeTracker;
 import com.google.android.apps.common.proguard.UsedByReflection;
 import com.google.common.base.Ascii;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /** Tracks the current global state for the parse tree. */
@@ -159,6 +162,7 @@ public class GlobalVariables extends TimedFlags implements ParseTree.VariableDel
   private boolean isLastFocusInScrollableNode = false;
   private boolean isFocusPage = false;
   private boolean isInterpretAsEntryKey = false;
+  private boolean isDescribingSwipeTarget = false;
 
   private final @Nullable GestureShortcutProvider gestureShortcutProvider;
 
@@ -174,6 +178,14 @@ public class GlobalVariables extends TimedFlags implements ParseTree.VariableDel
   // Verbosity settings
   private boolean speakRoles = true;
   private boolean speakCollectionInfo = true;
+
+  // Control sounds: whether they are heard, and the ones heard or felt for focused controls.
+  private boolean controlSoundsOn = false;
+  private Set<Integer> controlSounds = Collections.emptySet();
+  private Set<Integer> heardControlSounds = Collections.emptySet();
+  private boolean speakControlSoundRoles = false;
+  // The control sound playing for the focus being described, or 0.
+  private int roleSoundOfFocus = 0;
   @DescriptionOrder private int descriptionOrder = DESC_ORDER_ROLE_NAME_STATE_POSITION;
   private boolean speakElementIds = false;
   private boolean countRepeatedSymbols = false;
@@ -574,6 +586,20 @@ public class GlobalVariables extends TimedFlags implements ParseTree.VariableDel
     return isInterpretAsEntryKey;
   }
 
+  /**
+   * Sets whether the node being described is where a swipe moves focus, described before the swipe
+   * has scrolled it into view. Its children that are off screen only because of where they are,
+   * below or above the edge of the list, will then be on screen when it is spoken.
+   */
+  public void setDescribingSwipeTarget(boolean describingSwipeTarget) {
+    isDescribingSwipeTarget = describingSwipeTarget;
+  }
+
+  /** Returns whether the node being described is a swipe's target; see setDescribingSwipeTarget. */
+  public boolean isDescribingSwipeTarget() {
+    return isDescribingSwipeTarget;
+  }
+
   /** Returns if TalkBack speaks collection info. */
   public boolean getSpeakCollectionInfo() {
     return speakCollectionInfo;
@@ -590,6 +616,54 @@ public class GlobalVariables extends TimedFlags implements ParseTree.VariableDel
 
   public void setSpeakRoles(boolean value) {
     speakRoles = value;
+  }
+
+  /**
+   * Sets whether control sounds are heard, the ones that are heard or felt as vibrations, the ones
+   * of those that are heard, and whether the kind of control is still spoken when its sound
+   * plays.
+   */
+  public void setControlSounds(
+      boolean on, Set<Integer> sounds, Set<Integer> heard, boolean speakRoles) {
+    controlSoundsOn = on;
+    controlSounds = sounds;
+    heardControlSounds = heard;
+    speakControlSoundRoles = speakRoles;
+  }
+
+  /**
+   * Returns whether a control sound is heard. One that is only felt leaves the focus sound in
+   * place, and plays its vibration in place of the focus vibration.
+   */
+  public boolean isControlSoundHeard(int sound) {
+    return heardControlSounds.contains(sound);
+  }
+
+  /** Returns whether control sounds are on, so focus sounds come from where the focus is. */
+  public boolean areControlSoundsOn() {
+    return controlSoundsOn;
+  }
+
+  /** Returns the control sound to play for focusing {@code node}, or 0 if none plays. */
+  public int getControlSoundForFocus(AccessibilityNodeInfoCompat node) {
+    if (controlSounds.isEmpty()) {
+      return 0;
+    }
+    int sound = ControlSounds.soundForFocus(node);
+    return controlSounds.contains(sound) ? sound : 0;
+  }
+
+  /**
+   * Sets the control sound playing for the focus whose speech is being composed, or 0 after it.
+   * Controls of that kind do not have their kind spoken, unless the user asked for it.
+   */
+  public void setRoleSoundOfFocus(int sound) {
+    roleSoundOfFocus = speakControlSoundRoles ? 0 : sound;
+  }
+
+  /** Returns whether the sound playing for the focus already tells what kind of control it is. */
+  public boolean isRoleSaidBySound(AccessibilityNodeInfoCompat node) {
+    return roleSoundOfFocus != 0 && ControlSounds.soundForRole(node) == roleSoundOfFocus;
   }
 
   /** Returns if TalkBack speaks system window titles. */

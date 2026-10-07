@@ -51,6 +51,7 @@ import static com.google.android.accessibility.talkback.selector.SelectorControl
 import static com.google.android.accessibility.talkback.selector.SelectorController.Setting.GRANULARITY_SEARCH;
 import static com.google.android.accessibility.talkback.selector.SelectorController.Setting.GRANULARITY_TYPO;
 import static com.google.android.accessibility.talkback.selector.SelectorController.Setting.GRANULARITY_WINDOWS;
+import static com.google.android.accessibility.talkback.selector.SelectorController.Setting.TABLET_HELD_UP_FACES_AWAY;
 import static com.google.android.accessibility.utils.Performance.EVENT_ID_UNTRACKED;
 import static com.google.android.accessibility.utils.monitor.InputModeTracker.INPUT_MODE_TOUCH;
 import static com.google.android.accessibility.utils.traversal.TraversalStrategy.SEARCH_FOCUS_BACKWARD;
@@ -171,6 +172,10 @@ public class SelectorController implements UserInputEventListener {
         R.string.pref_selector_punctuation_key,
         R.string.selector_punctuation,
         R.bool.pref_selector_punctuation_default),
+    EMOJI(
+        R.string.pref_selector_emoji_key,
+        R.string.selector_emoji,
+        R.bool.pref_selector_emoji_default),
     GRANULARITY(
         R.string.pref_selector_granularity_key,
         R.string.selector_granularity,
@@ -211,6 +216,10 @@ public class SelectorController implements UserInputEventListener {
         R.string.pref_selector_wrap_around_key,
         R.string.selector_wrap_around,
         R.bool.pref_selector_wrap_around_default),
+    TABLET_HELD_UP_FACES_AWAY(
+        R.string.pref_selector_tablet_held_up_faces_away_key,
+        R.string.selector_tablet_held_up_faces_away,
+        R.bool.pref_selector_tablet_held_up_faces_away_default),
     ACTIONS(
         R.string.pref_selector_actions_key,
         R.string.selector_actions,
@@ -616,6 +625,7 @@ public class SelectorController implements UserInputEventListener {
           Setting.SPEECH_RATE,
           Setting.VERBOSITY,
           Setting.PUNCTUATION,
+          Setting.EMOJI,
           Setting.FORMATTING,
           Setting.LANGUAGE,
           // TODO Supports sound feedback and vibration feedback.
@@ -628,6 +638,7 @@ public class SelectorController implements UserInputEventListener {
           Setting.CHANGE_TYPING_FOCUS_LATENCY,
           Setting.CHANGE_LIFT_TO_ACTIVATE,
           Setting.WRAP_AROUND,
+          Setting.TABLET_HELD_UP_FACES_AWAY,
           Setting.ADJUSTABLE_WIDGET,
           Setting.CONTROL_TELLING_TIME,
           Setting.SWITCH_TTS_ENGINE);
@@ -709,6 +720,7 @@ public class SelectorController implements UserInputEventListener {
     ImmutableList.Builder<Setting> hiddenSettingsBuilder = ImmutableList.builder();
     if (FormFactorUtils.isAndroidWear()) {
       hiddenSettingsBuilder.add(GRANULARITY_TYPO);
+      hiddenSettingsBuilder.add(TABLET_HELD_UP_FACES_AWAY);
     } else if (!FeatureSupport.doesServiceHandleDoubleTap()) {
       hiddenSettingsBuilder.add(ACTIONS);
     }
@@ -906,6 +918,10 @@ public class SelectorController implements UserInputEventListener {
         actionDescription = context.getString(R.string.title_pref_selector_punctuation);
         hint = getAdjustSelectedSettingGestures();
       }
+      case EMOJI -> {
+        actionDescription = context.getString(R.string.title_pref_emoji_speech);
+        hint = getAdjustSelectedSettingGestures();
+      }
       case FORMATTING -> {
         actionDescription = context.getString(R.string.title_switch_text_formatting);
         hint = getAdjustSelectedSettingGestures();
@@ -944,6 +960,10 @@ public class SelectorController implements UserInputEventListener {
       }
       case WRAP_AROUND -> {
         actionDescription = context.getString(R.string.title_pref_wrap_around);
+        hint = getAdjustSelectedSettingGestures();
+      }
+      case TABLET_HELD_UP_FACES_AWAY -> {
+        actionDescription = context.getString(R.string.title_selector_tablet_held_up_faces_away);
         hint = getAdjustSelectedSettingGestures();
       }
       case CONTROL_TELLING_TIME -> {
@@ -1380,6 +1400,9 @@ public class SelectorController implements UserInputEventListener {
       case SCROLLING_SEQUENTIAL -> {
         return true;
       }
+      case EMOJI -> {
+        return true;
+      }
       case CHANGE_ACCESSIBILITY_VOLUME -> {
         return FeatureSupport.hasAccessibilityAudioStream(context);
       }
@@ -1396,6 +1419,9 @@ public class SelectorController implements UserInputEventListener {
         return true;
       }
       case WRAP_AROUND -> {
+        return true;
+      }
+      case TABLET_HELD_UP_FACES_AWAY -> {
         return true;
       }
       case ACTIONS -> {
@@ -1513,10 +1539,7 @@ public class SelectorController implements UserInputEventListener {
                   .setQueueMode(SpeechController.QUEUE_MODE_INTERRUPT)
                   .setFlags(
                       FeedbackItem.FLAG_NO_HISTORY
-                          | FeedbackItem.FLAG_FORCE_FEEDBACK_EVEN_IF_AUDIO_PLAYBACK_ACTIVE
-                          | FeedbackItem.FLAG_FORCE_FEEDBACK_EVEN_IF_MICROPHONE_ACTIVE
-                          | FeedbackItem.FLAG_FORCE_FEEDBACK_EVEN_IF_SSB_ACTIVE
-                          | FeedbackItem.FLAG_FORCE_FEEDBACK_EVEN_IF_PHONE_CALL_ACTIVE
+                          | FeedbackItem.FLAG_FORCE_FEEDBACK_ALL
                           | FeedbackItem.FLAG_SKIP_DUPLICATE)));
       selectorEventNotifier.onSelectorSettingAnnounced(announcement);
     }
@@ -1688,6 +1711,10 @@ public class SelectorController implements UserInputEventListener {
         cycleSpeakPunctuationVerbosity(eventId, TalkBackAnalytics.TYPE_SELECTOR);
         return;
       }
+      case EMOJI -> {
+        cycleEmojiSpeech(eventId, isNext);
+        return;
+      }
       case FORMATTING -> {
         toggleTextFormatting(eventId);
         return;
@@ -1726,6 +1753,10 @@ public class SelectorController implements UserInputEventListener {
       }
       case WRAP_AROUND -> {
         switchWrapAroundOnOrOff(eventId);
+        return;
+      }
+      case TABLET_HELD_UP_FACES_AWAY -> {
+        switchTabletHeldUpFacesAwayOnOrOff(eventId);
         return;
       }
       case CONTROL_TELLING_TIME -> {
@@ -2034,6 +2065,27 @@ public class SelectorController implements UserInputEventListener {
         eventId, VerbosityPreferences.verbosityValueToName(newVerbosity, context));
   }
 
+  /** Moves how emoji are read to the next or previous choice of the Emoji setting. */
+  private void cycleEmojiSpeech(EventId eventId, boolean isNext) {
+    String[] values = context.getResources().getStringArray(R.array.pref_emoji_speech_values);
+    String[] entries = context.getResources().getStringArray(R.array.pref_emoji_speech_entries);
+    String current =
+        SharedPreferencesUtils.getStringPref(
+            prefs,
+            context.getResources(),
+            R.string.pref_emoji_speech_key,
+            R.string.pref_emoji_speech_default);
+    int index = Math.max(0, Arrays.asList(values).indexOf(current));
+    index = (index + (isNext ? 1 : values.length - 1)) % values.length;
+    SharedPreferencesUtils.putStringPref(
+        prefs, context.getResources(), R.string.pref_emoji_speech_key, values[index]);
+    announceSetting(
+        eventId,
+        context.getString(R.string.emoji_speech_state, entries[index]),
+        getSelectSettingGestures());
+    showQuickMenuActionOverlay(eventId, entries[index]);
+  }
+
   /** Cycle the punctuation verbosity to the next value */
   public void cycleSpeakPunctuationVerbosity(EventId eventId, int triggerAction) {
     Resources res = context.getResources();
@@ -2331,10 +2383,7 @@ public class SelectorController implements UserInputEventListener {
                 .setQueueMode(SpeechController.QUEUE_MODE_INTERRUPT)
                 .setFlags(
                     FeedbackItem.FLAG_NO_HISTORY
-                        | FeedbackItem.FLAG_FORCE_FEEDBACK_EVEN_IF_AUDIO_PLAYBACK_ACTIVE
-                        | FeedbackItem.FLAG_FORCE_FEEDBACK_EVEN_IF_MICROPHONE_ACTIVE
-                        | FeedbackItem.FLAG_FORCE_FEEDBACK_EVEN_IF_SSB_ACTIVE
-                        | FeedbackItem.FLAG_FORCE_FEEDBACK_EVEN_IF_PHONE_CALL_ACTIVE
+                        | FeedbackItem.FLAG_FORCE_FEEDBACK_ALL
                         | FeedbackItem.FLAG_SKIP_DUPLICATE)));
   }
 
@@ -2356,6 +2405,20 @@ public class SelectorController implements UserInputEventListener {
     announceSetting(
         eventId,
         context.getString(switchedValue ? R.string.wrap_around_on : R.string.wrap_around_off),
+        getSelectSettingGestures());
+    showQuickMenuActionOverlay(
+        eventId, context.getString(switchedValue ? R.string.value_on : R.string.value_off));
+  }
+
+  /** Turns the braille keyboard's "Tablet held up faces away" setting on or off. */
+  private void switchTabletHeldUpFacesAwayOnOrOff(EventId eventId) {
+    boolean switchedValue = BrailleKeyboardSettings.toggleTabletHeldUpFacesAway(context);
+    announceSetting(
+        eventId,
+        context.getString(
+            switchedValue
+                ? R.string.tablet_held_up_faces_away_on
+                : R.string.tablet_held_up_faces_away_off),
         getSelectSettingGestures());
     showQuickMenuActionOverlay(
         eventId, context.getString(switchedValue ? R.string.value_on : R.string.value_off));

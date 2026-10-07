@@ -78,7 +78,7 @@
       Description: Explains that enabling this routes TalkBack speech through the accessibility stream,
       allowing independent volume control. [CHAR LIMIT=NONE]
     -->
-    <string name="summary_pref_use_accessibility_stream">Speech uses the accessibility volume, so you can set it apart from media. When off, speech uses the media volume.</string>
+    <string name="summary_pref_use_accessibility_stream">Speech and sounds use the accessibility volume, so you can set them apart from media. When off, they use the media volume.</string>
     <!--
       Source: Title for the "speak long text in phrases" toggle.
       Description: When on, Backtalk sends long text to the speech engine as separate phrases. [CHAR LIMIT=NONE]
@@ -89,6 +89,16 @@
       Description: Explains what sending long text as phrases does, and why to turn it off. [CHAR LIMIT=NONE]
     -->
     <string name="summary_pref_speak_in_phrases">For speech engines that are slow to stop, such as Gryphon, so swiping away stops long text at once. Many engines pause longer between sentences sent separately, so leave this off if yours stops quickly.</string>
+    <!--
+      Source: Title for the "switch languages" toggle.
+      Description: When on, text that an app marks as another language is spoken in that language. [CHAR LIMIT=NONE]
+    -->
+    <string name="title_pref_switch_languages">Switch language automatically</string>
+    <!--
+      Source: Title for the "switch dialects" toggle.
+      Description: When on, text marked as another country's form of the voice's language is spoken with that country's voice. [CHAR LIMIT=NONE]
+    -->
+    <string name="title_pref_switch_dialects">Switch dialect automatically</string>
     <!--
       Source: Title for the menu item that opens the dialog with TTS  languages installed by the user.
       Description: This is presented to the user. [CHAR LIMIT=NONE]
@@ -307,6 +317,58 @@
     -->
     <string name="punctuation_some">Some</string>
     <!--
+      Source: Preference for how emoji are spoken. [CHAR LIMIT=45]
+    -->
+    <string name="title_pref_emoji_speech">Emoji</string>
+    <!--
+      Source: Emoji preference choice: the speech engine reads emoji itself. [CHAR LIMIT=45]
+    -->
+    <string name="emoji_speech_engine">Read by speech engine</string>
+    <!--
+      Source: Emoji preference choice: Backtalk sends the speech engine each emoji's name. [CHAR LIMIT=45]
+    -->
+    <string name="emoji_speech_names">Read by Backtalk</string>
+    <!--
+      Source: Emoji preference choice: emoji are left out of speech. [CHAR LIMIT=45]
+    -->
+    <string name="emoji_speech_none">None</string>
+    <!--
+      Source: Summary of the Emoji reading control, and of the Emoji item in the list of Backtalk menu items. [CHAR LIMIT=NONE]
+    -->
+    <string name="summary_selector_menu_emoji">Change how emoji are read</string>
+    <!--
+      Source: Spoken when the Emoji reading control or menu changes how emoji are read, like "Emoji: Read by Backtalk". [CHAR LIMIT=NONE]
+    -->
+    <string name="emoji_speech_state">Emoji: <xliff:g example="Read by Backtalk" id="state">%1$s</xliff:g></string>
+    <!--
+      Source: Preference for saying how many times an emoji repeats, like "3 grinning face", instead of naming it each time. [CHAR LIMIT=45]
+    -->
+    <string name="title_pref_emoji_repeat_count">Count repeated emoji</string>
+    <!--
+      Source: Count repeated emoji choice: each emoji is named every time. [CHAR LIMIT=45]
+    -->
+    <string name="emoji_repeat_count_off">Off</string>
+    <!--
+      Source: Count repeated emoji choice: count an emoji that repeats 2 or more times in a row. [CHAR LIMIT=45]
+    -->
+    <string name="emoji_repeat_count_2">2 or more</string>
+    <!--
+      Source: Count repeated emoji choice: count an emoji that repeats 3 or more times in a row. [CHAR LIMIT=45]
+    -->
+    <string name="emoji_repeat_count_3">3 or more</string>
+    <!--
+      Source: Count repeated emoji choice: count an emoji that repeats 4 or more times in a row. [CHAR LIMIT=45]
+    -->
+    <string name="emoji_repeat_count_4">4 or more</string>
+    <!--
+      Source: Count repeated emoji choice: count an emoji that repeats 5 or more times in a row. [CHAR LIMIT=45]
+    -->
+    <string name="emoji_repeat_count_5">5 or more</string>
+    <!--
+      Source: Count repeated emoji choice: count an emoji that repeats 6 or more times in a row. [CHAR LIMIT=45]
+    -->
+    <string name="emoji_repeat_count_6">6 or more</string>
+    <!--
       Source: Preference for count repeated symbols. [CHAR LIMIT=45]
     -->
     <string name="title_pref_count_repeated_symbols">Count repeated symbols</string>
@@ -373,7 +435,7 @@
     <!-- Title of dialog to confirm the Focus delay reading control items being added. [CHAR LIMIT=NONE] -->
     <string name="confirm_focus_delay_reading_control_added_dialog_title">Focus delay added to reading control</string>
     <!-- Message of dialog to confirm the Focus delay reading control items being added. [CHAR LIMIT=NONE] -->
-    <string name="confirm_focus_delay_reading_control_added_dialog_message">Swipe with 3 fingers to use reading control and change the focus delay at any time</string>
+    <string name="confirm_focus_delay_reading_control_added_dialog_message">You can now change the focus delay at any time with the reading controls.</string>
 
     <!-- Title of dialog to confirm the typing focus delay reduction which enables the Lift-to-type to do the CLICK. [CHAR LIMIT=NONE] -->
     <string name="confirm_the_typing_focus_delay_reduction_dialog_title">Switch to lift-to-type?</string>
@@ -382,7 +444,7 @@
     <!-- Title of dialog to confirm the typing focus delay reading control items being added. [CHAR LIMIT=NONE] -->
     <string name="confirm_typing_focus_delay_reading_control_added_dialog_title">Typing focus delay added to reading control</string>
     <!-- Message of dialog to confirm the Focus delay reading control items being added. [CHAR LIMIT=NONE] -->
-    <string name="confirm_typing_focus_delay_reading_control_added_dialog_message">If you have issues with double-tap while typing, swipe with 3 fingers to use reading control and change to a longer typing focus delay</string>
+    <string name="confirm_typing_focus_delay_reading_control_added_dialog_message">If double-tap is unreliable while you type, you can change to a longer typing focus delay at any time with the reading controls.</string>
     <!-- A warning message to tell the situation user cannot change typing focus delay. [CHAR LIMIT=NONE] -->
     <string name="gestures_announce_typing_focus_wont_change">Typing focus delay is not functioning without Lift-to-type.</string>
 
@@ -434,6 +496,10 @@
       Description: Explains that element IDs will be spoken for unlabeled buttons. [CHAR LIMIT=NONE]
     -->
     <string name="summary_pref_speak_element_ids">Say the ID of buttons that have no label</string>
+    <!-- Verbosity: switch for speaking the new volume after the user changes it with the volume keys. [CHAR LIMIT=NONE] -->
+    <string name="title_pref_speak_volume_changes">Speak volume changes</string>
+    <!-- Verbosity: summary of the switch for speaking volume changes. [CHAR LIMIT=NONE] -->
+    <string name="summary_pref_speak_volume_changes">Say the new volume after you press the volume keys</string>
     <!--
       Source: Preference for speaking notifications as they arrive.
       Description: The user can turn this off to stop new notifications from being read aloud. [CHAR LIMIT=NONE]
@@ -533,8 +599,6 @@
     Description: Explains how quick menu is opened. [CHAR LIMIT=NONE]
     -->
     <string name="pref_category_selector_menu_summary">Turn 2 fingers like a dial, or swipe left or right with 3 fingers, to choose a reading control. Then swipe up or down to change it.</string>
-    <!-- Summary of the reading controls setting when the rotor is not available. [CHAR LIMIT=NONE] -->
-    <string name="pref_category_selector_menu_summary_no_rotor">Swipe left or right with 3 fingers to choose a reading control. Then swipe up or down to change it.</string>
     <!--
     Source: Summary subtext for quick menu setting in XR.
     Description: Explains how quick menu is opened without multifinger support. [CHAR LIMIT=NONE]
@@ -1137,11 +1201,6 @@
     -->
     <string name="value_audio_output_device_bluetooth_or_wired">Connected Bluetooth device or wired</string>
     <!--
-      Source: Entry in the audio output device list when no Bluetooth or wired device is connected.
-      Description: Indicates no external audio device is connected. [CHAR LIMIT=45]
-    -->
-    <string name="value_audio_output_device_none_connected">Bluetooth or wired (none connected)</string>
-    <!--
       Source: Status suffix in the audio output device summary when the chosen device is not currently connected.
       Description: Status for disconnected device. [CHAR LIMIT=20]
     -->
@@ -1171,11 +1230,6 @@
       Description: Fallback name for USB audio device. [CHAR LIMIT=30]
     -->
     <string name="value_audio_output_device_usb_device">USB audio device</string>
-    <!--
-      Source: Fallback label for AUX line audio output without a name.
-      Description: Fallback name for AUX line device. [CHAR LIMIT=30]
-    -->
-    <string name="value_audio_output_device_aux_line">Auxiliary audio line</string>
 
     <!--
       Source: Preference category title.
@@ -2214,8 +2268,8 @@ Description: Explain that the feature is enabled for all images. [CHAR_LIMIT=NON
 
     <!-- Label for type and hold duration. [CHAR LIMIT=NONE]-->
     <string name="value_typing_long_press_500ms">0.5 seconds</string>
-    <!-- Title for the maximum time between taps of a multi-tap gesture. [CHAR LIMIT=NONE]-->
-    <string name="title_pref_multi_tap_timeout">Time between taps</string>
+    <!-- Title for the maximum time between taps of a one-finger multi-tap gesture. [CHAR LIMIT=NONE]-->
+    <string name="title_pref_multi_tap_timeout">Time between one-finger taps</string>
     <!-- Label for multi-tap timeout. [CHAR LIMIT=NONE]-->
     <string name="value_multi_tap_timeout_100ms">0.1 seconds</string>
     <!-- Label for multi-tap timeout. [CHAR LIMIT=NONE]-->
@@ -2244,6 +2298,11 @@ Description: Explain that the feature is enabled for all images. [CHAR_LIMIT=NON
     <string name="value_typing_long_press_3000ms">3 seconds (default)</string>
     <!-- Label for type and hold duration. [CHAR LIMIT=NONE]-->
     <string name="value_typing_long_press_5000ms">5 seconds</string>
+
+    <!-- Reduce delays: switch that plays sounds and speech through the fastest audio path. [CHAR LIMIT=50] -->
+    <string name="title_pref_low_latency_audio">Low-latency audio</string>
+    <!-- Reduce delays: summary of the low-latency audio switch. [CHAR LIMIT=NONE] -->
+    <string name="summary_pref_low_latency_audio">Play Backtalk\'s sounds and speech through the phone\'s fastest audio path, so you hear them sooner. Turn it off if speech or sounds break up or sound wrong.</string>
 
     <!-- Label for touch explore time out. [CHAR LIMIT=NONE]-->
     <string name="value_touch_explore_time_out_150ms">0.15 seconds</string>
@@ -2277,6 +2336,15 @@ Description: Explain that the feature is enabled for all images. [CHAR_LIMIT=NON
     <string name="wrap_around_on">Wrap around on</string>
     <!-- Spoken when wrap around is turned off. [CHAR LIMIT=NONE]-->
     <string name="wrap_around_off">Wrap around off</string>
+
+    <!-- Title of the reading control for the braille keyboard setting that takes a tablet or unfolded phone held up to be held with the screen facing away from the user. When off, it is taken to face the user and uses the tabletop layout. [CHAR LIMIT=NONE]-->
+    <string name="title_selector_tablet_held_up_faces_away">Tablet held up faces away</string>
+    <!-- Summary of the tablet held up faces away setting in the reading controls list. [CHAR LIMIT=NONE]-->
+    <string name="summary_support_tablet_held_up_faces_away">For the braille keyboard on a tablet or unfolded phone</string>
+    <!-- Spoken when the tablet held up faces away setting is turned on. [CHAR LIMIT=NONE]-->
+    <string name="tablet_held_up_faces_away_on">Tablet held up faces away on</string>
+    <!-- Spoken when the tablet held up faces away setting is turned off. [CHAR LIMIT=NONE]-->
+    <string name="tablet_held_up_faces_away_off">Tablet held up faces away off</string>
 
     <!-- Label for the preference specifying that the shake to read feature is disabled. -->
     <string name="value_shake_to_read_disabled">Disabled</string>
@@ -2698,6 +2766,8 @@ Description: Explain that the feature is enabled for all images. [CHAR_LIMIT=NON
   Description: The user can switch it. [CHAR+LIMIT="NONE"]
   -->
   <string name="title_pref_cache_keyboard_keys">Announce keyboard keys faster</string>
+  <!-- Title of the switch that speaks a list item a swipe moves to before the list has scrolled it into view. [CHAR LIMIT=NONE] -->
+  <string name="title_pref_speak_items_before_scroll">Speak items before they scroll into view</string>
   <!--
   Source: Title for the sound and vibration.
   Description: The user can set sound and vibration. [CHAR_LIMIT=NONE]

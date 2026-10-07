@@ -9,6 +9,8 @@
     <string name="pref_proximity_key">pref_proximity</string>
     <!-- Must match SpeakerphoneSettings.PREF_ENABLED. -->
     <string name="pref_speakerphone_away_from_ear_key">pref_speakerphone_away_from_ear</string>
+    <string name="pref_status_readout_key" translatable="false">pref_status_readout</string>
+    <string name="pref_direct_touch_key" translatable="false">pref_direct_touch</string>
     <string name="pref_check_for_updates_key" translatable="false">pref_check_for_updates</string>
     <string name="pref_auto_update_check_key" translatable="false">pref_auto_update_check</string>
     <string name="pref_show_exit_watermark_key">pref_show_exit_watermark</string>
@@ -33,6 +35,8 @@
     <string name="pref_tts_engine_key">pref_tts_engine</string>
     <string name="pref_use_accessibility_stream_key">pref_use_accessibility_stream</string>
     <string name="pref_speak_in_phrases_key">pref_speak_in_phrases</string>
+    <string name="pref_switch_languages_key">pref_switch_languages</string>
+    <string name="pref_switch_dialects_key">pref_switch_dialects</string>
     <string name="pref_speech_pitch_seekbar_key_int" translatable="false">pref_speech_pitch_seekbar_key_int</string>
     <string name="pref_speech_volume_seekbar_key_int" translatable="false">pref_speech_volume_seekbar_key_int</string>
     <string name="pref_intonation_key">pref_intonation</string>
@@ -45,6 +49,7 @@
     <string name="pref_time_feedback_format_key">pref_time_feedback_format_key</string>
     <string name="pref_speak_element_ids_key">pref_element_ids_key</string>
     <string name="pref_speak_notifications_key">pref_speak_notifications</string>
+    <string name="pref_speak_volume_changes_key">pref_speak_volume_changes</string>
     <string name="pref_diagnosis_mode_key">pref_diagnosis_mode</string>
     <string name="pref_tts_overlay_key">pref_tts_overlay</string>
     <string name="pref_multiple_gesture_set_key">pref_multiple_gesture_set_key</string>
@@ -78,6 +83,8 @@
     <string name="pref_punctuation_key" translatable="false">pref_punctuation</string>
     <string name="pref_punctuation_verbosity" translatable="false">pref_punctuation_verbosity</string>
     <string name="pref_count_repeated_symbols_key" >pref_collapse_repeated_symbols</string>
+    <string name="pref_emoji_speech_key" translatable="false">pref_emoji_speech</string>
+    <string name="pref_emoji_repeat_count_key" translatable="false">pref_emoji_repeat_count</string>
     <string name="pref_capital_letters_key">pref_capital_letters</string>
     <string name="pref_a11y_hints_key">pref_a11y_hints</string>
     <string name="pref_speak_container_element_positions_key">pref_speak_container_element_positions_key</string>
@@ -191,6 +198,7 @@
     <string name="pref_selector_language_key">pref_selector_language_key</string>
     <string name="pref_selector_verbosity_key">pref_selector_verbosity_key</string>
     <string name="pref_selector_punctuation_key" translatable="false">pref_selector_punctuation_key</string>
+    <string name="pref_selector_emoji_key" translatable="false">pref_selector_emoji_key</string>
     <string name="pref_selector_granularity_key">pref_selector_granularity_key</string>
     <string name="pref_selector_hide_screen_key">pref_selector_hide_screen_key</string>
     <string name="pref_selector_audio_focus_key">pref_selector_audio_focus_key</string>
@@ -204,6 +212,8 @@
     <string name="pref_lift_to_activate_key" translatable="false">pref_lift_to_activate_key</string>
     <string name="pref_selector_wrap_around_key" translatable="false">pref_selector_wrap_around_key</string>
     <string name="pref_wrap_around_key" translatable="false">pref_wrap_around_key</string>
+    <string name="pref_speak_items_before_scroll_key" translatable="false">pref_speak_items_before_scroll_key</string>
+    <string name="pref_selector_tablet_held_up_faces_away_key" translatable="false">pref_selector_tablet_held_up_faces_away_key</string>
     <string name="pref_lift_to_activate_default" translatable="false">0</string>
     <string-array name="pref_lift_to_activate_entries">
       <item>@string/value_lift_to_activate_disabled</item>
@@ -1240,6 +1250,42 @@
 
     <string name="pref_punctuation_default" translatable="false">2</string>
 
+    <string-array name="pref_emoji_speech_entries">
+      <item>@string/emoji_speech_engine</item>
+      <item>@string/emoji_speech_names</item>
+      <item>@string/emoji_speech_none</item>
+    </string-array>
+
+    <!-- The values of EmojiSpeech's MODE constants. -->
+    <string-array name="pref_emoji_speech_values" translatable="false">
+      <item>engine</item>
+      <item>names</item>
+      <item>none</item>
+    </string-array>
+
+    <string name="pref_emoji_speech_default" translatable="false">engine</string>
+
+    <string-array name="pref_emoji_repeat_count_entries">
+      <item>@string/emoji_repeat_count_off</item>
+      <item>@string/emoji_repeat_count_2</item>
+      <item>@string/emoji_repeat_count_3</item>
+      <item>@string/emoji_repeat_count_4</item>
+      <item>@string/emoji_repeat_count_5</item>
+      <item>@string/emoji_repeat_count_6</item>
+    </string-array>
+
+    <!-- How many times an emoji repeats before it is counted; 0 names each one. -->
+    <string-array name="pref_emoji_repeat_count_values" translatable="false">
+      <item>0</item>
+      <item>2</item>
+      <item>3</item>
+      <item>4</item>
+      <item>5</item>
+      <item>6</item>
+    </string-array>
+
+    <string name="pref_emoji_repeat_count_default" translatable="false">0</string>
+
     <!-- The list of the gestures which the platform supports. [CHAR_LIMIT=NONE] -->
     <string-array name="service_detected_gesture_list">
       <!-- Start with double tap. -->
@@ -1315,6 +1361,8 @@
     <string name="pref_speech_pitch_default">1.0</string>
     <bool name="pref_use_accessibility_stream_default">true</bool>
     <bool name="pref_speak_in_phrases_default">false</bool>
+    <bool name="pref_switch_languages_default">true</bool>
+    <bool name="pref_switch_dialects_default">true</bool>
     <string name="pref_speech_volume_default">100</string>
     <integer name="pref_speech_volume_min">25</integer>
     <bool name="pref_screenoff_default">false</bool>
@@ -1337,12 +1385,14 @@
     <string name="pref_time_feedback_format_default">pref_time_feedback_format_values_undefined</string>
     <bool name="pref_speak_element_ids_default">false</bool>
     <bool name="pref_speak_notifications_default">true</bool>
+    <bool name="pref_speak_volume_changes_default">true</bool>
     <bool name="pref_diagnosis_mode_default">false</bool>
     <bool name="pref_tts_overlay_default">false</bool>
     <bool name="pref_multiple_gesture_set_default">false</bool>
     <bool name="pref_echo_recognized_text_default">false</bool>
     <bool name="pref_reduce_window_delay_default">true</bool>
     <bool name="pref_wrap_around_default">true</bool>
+    <bool name="pref_speak_items_before_scroll_default">false</bool>
     <bool name="pref_auto_enter_table_navigation_default">false</bool>
     <bool name="pref_tree_debug_default">false</bool>
     <bool name="pref_performance_stats_default">false</bool>
@@ -1389,6 +1439,7 @@
     <bool name="pref_selector_language_default">false</bool>
     <bool name="pref_selector_verbosity_default">false</bool>
     <bool name="pref_selector_punctuation_default">false</bool>
+    <bool name="pref_selector_emoji_default">false</bool>
     <bool name="pref_selector_granularity_default">false</bool>
     <bool name="pref_selector_hide_screen_default">false</bool>
     <bool name="pref_selector_scroll_seq_default">false</bool>
@@ -1397,6 +1448,7 @@
     <bool name="pref_selector_typing_focus_latency_default">false</bool>
     <bool name="pref_selector_lift_to_activate_default">true</bool>
     <bool name="pref_selector_wrap_around_default">true</bool>
+    <bool name="pref_selector_tablet_held_up_faces_away_default">false</bool>
     <bool name="pref_selector_switch_tts_engine_default">false</bool>
     <bool name="pref_selector_touch_focus_latency_default">false</bool>
     <bool name="pref_selector_control_telling_time_default">false</bool>
@@ -1454,6 +1506,7 @@
     <bool name="pref_show_context_menu_control_telling_time_default">false</bool>
     <bool name="pref_show_context_menu_verbosity_default">false</bool>
     <bool name="pref_show_context_menu_language_default">false</bool>
+    <bool name="pref_show_context_menu_emoji_default">false</bool>
     <bool name="pref_show_context_menu_audio_ducking_default">false</bool>
     <bool name="pref_show_context_menu_sound_feedback_default">false</bool>
     <bool name="pref_show_context_menu_vibration_feedback_default">false</bool>
@@ -1652,6 +1705,7 @@
     <string name="pref_show_context_menu_control_telling_time_setting_key" translatable="false">pref_control_telling_time_menu_setting_key</string>
     <string name="pref_show_context_menu_verbosity_setting_key" translatable="false">pref_verbosity_menu_setting_key</string>
     <string name="pref_show_context_menu_language_setting_key" translatable="false">pref_language_menu_setting_key</string>
+    <string name="pref_show_context_menu_emoji_setting_key" translatable="false">pref_emoji_menu_setting_key</string>
     <string name="pref_show_context_menu_audio_ducking_setting_key" translatable="false">pref_audio_ducking_menu_setting_key</string>
     <string name="pref_show_context_menu_sound_feedback_setting_key" translatable="false">pref_sound_feedback_menu_setting_key</string>
     <string name="pref_show_context_menu_vibration_feedback_setting_key" translatable="false">pref_vibration_feedback_menu_setting_key</string>
@@ -1702,6 +1756,7 @@
     <!-- Selector settings -->
     <string name="selector_verbosity" translatable="false">VERBOSITY</string>
     <string name="selector_punctuation" translatable="false">PUNCTUATION</string>
+    <string name="selector_emoji" translatable="false">EMOJI</string>
     <string name="selector_speech_rate" translatable="false">SPEECH_RATE</string>
     <string name="selector_language" translatable="false">LANGUAGE</string>
     <string name="selector_granularity" translatable="false">GRANULARITY</string>
@@ -1713,6 +1768,7 @@
     <string name="selector_typing_focus_latency_change" translatable="false">SELECTOR_TYPING_FOCUS_LATENCY_CHANGE</string>
     <string name="selector_lift_to_activate_change" translatable="false">SELECTOR_LIFT_TO_ACTIVATE_CHANGE</string>
     <string name="selector_wrap_around" translatable="false">SELECTOR_WRAP_AROUND</string>
+    <string name="selector_tablet_held_up_faces_away" translatable="false">SELECTOR_TABLET_HELD_UP_FACES_AWAY</string>
     <string name="selector_switch_tts_engine" translatable="false">SELECTOR_SWITCH_TTS_ENGINE</string>
     <string name="selector_touch_focus_latency_change" translatable="false">SELECTOR_TOUCH_FOCUS_LATENCY_CHANGE</string>
     <string name="selector_control_telling_time" translatable="false">SELECTOR_CONTROL_TELLING_TIME</string>

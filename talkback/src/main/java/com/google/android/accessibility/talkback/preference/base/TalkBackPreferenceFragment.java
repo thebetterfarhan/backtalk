@@ -87,7 +87,6 @@ public class TalkBackPreferenceFragment extends TalkbackBaseFragment {
     settingsMetricStore = new SettingsMetricStore(context);
 
     fixListSummaries(getPreferenceScreen());
-    updateMenuSummaries();
 
     HatsRequesterViewModel viewModel =
         new ViewModelProvider(getActivity()).get(HatsRequesterViewModel.class);
@@ -135,16 +134,6 @@ public class TalkBackPreferenceFragment extends TalkbackBaseFragment {
                 ? R.string.title_pref_category_tutorial
                 : R.string.title_pref_category_help_no_tutorial);
         preference.setFragment(TutorialAndHelpFragment.class.getName());
-      }
-    } else if (FormFactorUtils.isAndroidWear()) {
-      Preference prefTutorial = findPreferenceByResId(R.string.pref_tutorial_key);
-      if (prefTutorial != null) {
-        prefTutorial.setIntent(TutorialInitiator.createTutorialIntent(getActivity()));
-      }
-      Preference prefHelp = findPreferenceByResId(R.string.pref_help_key);
-      if (prefHelp != null) {
-        // Only Wear has this preference in this fragment.
-        PreferenceActionHelper.assignWebIntentToPreference(this, prefHelp, WebPage.WEB_PAGE_HELP);
       }
     } else {
       updateTutorialAndHelpPreferencesForPhoneOrTablet();
@@ -326,45 +315,6 @@ public class TalkBackPreferenceFragment extends TalkbackBaseFragment {
       return;
     }
     preference.setChecked(prefValue);
-  }
-
-  /** Says how to open the menus with the gestures this device has. */
-  private void updateMenuSummaries() {
-    if (!FeatureSupport.isMultiFingerGestureSupported() || FormFactorUtils.isAndroidWear()) {
-      PreferencesActivityUtils.setSummary(
-          context,
-          getPreferenceManager(),
-          R.string.pref_category_manage_context_menu_key,
-          R.string.pref_category_context_menu_summary_single_finger);
-      PreferencesActivityUtils.setSummary(
-          context,
-          getPreferenceManager(),
-          R.string.pref_category_manage_selector_menu_key,
-          R.string.pref_category_selector_menu_summary_single_finger);
-    } else if (FormFactorUtils.isAndroidXr()) {
-      PreferencesActivityUtils.setSummary(
-          context,
-          getPreferenceManager(),
-          R.string.pref_category_manage_context_menu_key,
-          R.string.pref_category_context_menu_summary_xr);
-      PreferencesActivityUtils.setSummary(
-          context,
-          getPreferenceManager(),
-          R.string.pref_category_manage_selector_menu_key,
-          R.string.pref_category_selector_menu_summary_xr);
-    } else if (!FeatureSupport.supportGestureDetection()
-        || !SharedPreferencesUtils.getBooleanPref(
-            prefs,
-            context.getResources(),
-            R.string.pref_talkback_gesture_detection_key,
-            R.bool.pref_talkback_gesture_detection_default)) {
-      // The rotor needs Backtalk's own gesture detection.
-      PreferencesActivityUtils.setSummary(
-          context,
-          getPreferenceManager(),
-          R.string.pref_category_manage_selector_menu_key,
-          R.string.pref_category_selector_menu_summary_no_rotor);
-    }
   }
 
   /**

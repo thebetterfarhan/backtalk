@@ -242,9 +242,7 @@ public class ListMenuManager implements WindowEventHandler, AccessibilityEventLi
                   .setQueueMode(SpeechController.QUEUE_MODE_FLUSH_ALL)
                   .setFlags(
                       FeedbackItem.FLAG_NO_HISTORY
-                          | FeedbackItem.FLAG_FORCE_FEEDBACK_EVEN_IF_AUDIO_PLAYBACK_ACTIVE
-                          | FeedbackItem.FLAG_FORCE_FEEDBACK_EVEN_IF_MICROPHONE_ACTIVE
-                          | FeedbackItem.FLAG_FORCE_FEEDBACK_EVEN_IF_SSB_ACTIVE)));
+                          | FeedbackItem.FLAG_FORCE_FEEDBACK_ALL)));
       return false;
     }
     if (menuId == CONTEXT) {
@@ -597,6 +595,16 @@ public class ListMenuManager implements WindowEventHandler, AccessibilityEventLi
   }
 
   /**
+   * Moves the circle menu's focus with fingers that were still down when it opened, as after a
+   * double tap and hold. Does nothing if the menu is not open.
+   */
+  public void followHeldTouch(float x, float y, boolean lifted) {
+    if (radialMenu.isShowing()) {
+      radialMenu.followHeldTouch(x, y, lifted);
+    }
+  }
+
+  /**
    * Closes the circle menu when a gesture is detected while it is open, so that sliding in the
    * circle does not also perform gestures. Returns whether the gesture should be ignored.
    */
@@ -686,8 +694,11 @@ public class ListMenuManager implements WindowEventHandler, AccessibilityEventLi
 
   @Override
   public void handle(EventInterpretation interpretation, @Nullable EventId eventId) {
-    // Close the circle menu when the screen under it changes.
-    if (radialMenu.isShowing() && interpretation.getMainWindowsChanged()) {
+    // Close the circle menu when the screen under it changes, but not when the menu itself appears,
+    // which comes a moment after it opens and would close it under the user's finger.
+    if (radialMenu.isShowing()
+        && interpretation.getMainWindowsChanged()
+        && !radialMenu.isOwnWindow(interpretation.getEventSourceWindow().getTitle())) {
       dismissAll();
     }
     if (deferredAction != null) {
