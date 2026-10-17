@@ -1,6 +1,6 @@
 # On-device Gemma 4 Implementation Plan
 
-> **For agentic workers:** Use superpowers:executing-plans. Steps use checkbox syntax.
+> Work through this plan task by task. Steps use checkbox syntax for tracking.
 
 **Goal:** Describe image / Describe screen / follow-ups run on Gemma 4 on the phone, with no API key.
 
@@ -8,7 +8,7 @@
 
 **Tech Stack:** Kotlin, LiteRT-LM `litertlm-android:0.17.1`, HttpURLConnection, JUnit4.
 
-**Spec:** `docs/superpowers/specs/2026-10-01-on-device-gemma-design.md`
+**Spec:** `docs/implementation-plans/specs/2026-10-01-on-device-gemma-design.md`
 
 ## Global Constraints
 - minSdk 26; arm64-v8a only for on-device (the library ships no armeabi-v7a).
