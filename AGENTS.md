@@ -24,6 +24,13 @@ Unit tests and lint use flavor-scoped task names
 `.\gradlew.bat :talkback:tasks` before adding one to the gate; the names have not
 been verified here.
 
+## Do not edit
+
+Never modify outside an explicit user decision: `local.properties`, `*.jks`,
+`*.keystore`, generated `braille/**/build` trees, and the two generated zips
+(`braille/brltty/src/phone/res/raw/keytables.zip`,
+`braille/translate/src/phone/res/raw/translationtables.zip`).
+
 ## Notes
 
 - `ANDROID_SDK` and `JAVA_HOME` must be set. `build.sh` adds `sdk.dir` to
