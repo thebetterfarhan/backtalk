@@ -113,6 +113,7 @@ import com.google.android.accessibility.brailleime.settings.BrailleImePreference
 import com.google.android.accessibility.brailleime.tutorial.TutorialView.TutorialCallback;
 import com.google.android.accessibility.brailleime.tutorial.TutorialView.TutorialState.State;
 import com.google.android.accessibility.utils.AccessibilityServiceCompatUtils.Constants;
+import com.google.android.accessibility.utils.monitor.RecentUserInput;
 import com.google.android.accessibility.utils.BuildVersionUtils;
 import com.google.android.accessibility.utils.KeyboardUtils;
 import com.google.android.accessibility.utils.input.CursorGranularity;
@@ -1471,6 +1472,7 @@ public class BrailleIme extends InputMethodService {
 
         @Override
         public boolean onSwipeProduced(Swipe swipe) {
+          RecentUserInput.mark();
           if (brailleImeGestureController.performSwipeAction(swipe)) {
             showOnBrailleDisplay();
             if (!brailleDisplayConnectedAndNotSuspended) {
@@ -1483,6 +1485,7 @@ public class BrailleIme extends InputMethodService {
 
         @Override
         public boolean onDotHoldAndDotSwipe(DotHoldSwipe dotHoldSwipe) {
+          RecentUserInput.mark();
           if (brailleImeGestureController.performDotHoldAndSwipeAction(dotHoldSwipe)) {
             showOnBrailleDisplay();
             return true;
@@ -1500,12 +1503,14 @@ public class BrailleIme extends InputMethodService {
 
         @Override
         public boolean onHoldProduced(int pointersHeldCount) {
+          RecentUserInput.mark();
           return brailleImeGestureController.performDotHoldAction(pointersHeldCount);
         }
 
         @Nullable
         @Override
         public String onBrailleProduced(BrailleCharacter brailleChar) {
+          RecentUserInput.mark();
           String result = brailleImeGestureController.performTyping(brailleChar);
           if (!TextUtils.isEmpty(result)) {
             escapeReminder.restartTimer();

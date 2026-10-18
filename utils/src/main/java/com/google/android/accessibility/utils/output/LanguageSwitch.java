@@ -29,7 +29,8 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 /**
  * Decides whether speech follows the language an app marks text as. Switching to another
  * language, such as German for a British English voice, and switching to another country's form
- * of the voice's own language, such as US English, are turned off separately.
+ * of the voice's own language, such as US English, are turned off separately. While a voice
+ * profile is in use, all speech uses its voice, so speech never switches.
  */
 public final class LanguageSwitch {
 
@@ -73,6 +74,9 @@ public final class LanguageSwitch {
 
   /** Returns the language to speak text marked as {@code marked} in, by the switches. */
   static @Nullable Locale localeToSpeak(@Nullable Locale marked) {
+    if (VoiceProfiles.isProfileActive()) {
+      return null;
+    }
     Locale chosen = chosenLanguage;
     return localeToSpeak(
         marked, chosen, chosen != null ? chosen : voiceLanguage, switchLanguages, switchDialects);
@@ -126,21 +130,32 @@ public final class LanguageSwitch {
   /**
    * Returns {@code text} marked with the languages speech will use. Text is split into separate
    * utterances wherever its language marks change, and each split adds a pause, so a change that
-   * the switches turn off must not leave a mark behind. Returns {@code text} itself when both
-   * switches are on or it has no language marks, otherwise a copy with its other spans kept.
+   * the switches turn off must not leave a mark behind, and neither must a mark in the voice's own
+   * language, which unmarked text is spoken in anyway. Returns {@code text} itself when it has no
+   * such marks, otherwise a copy with its other spans kept. With a voice profile in use, the copy
+   * has no language marks at all.
    */
   static Spannable markSpokenLanguages(Spannable text) {
-    if (switchLanguages && switchDialects) {
-      return text;
-    }
     int length = text.length();
     LocaleSpan[] marks = text.getSpans(0, length, LocaleSpan.class);
     if (marks.length == 0) {
       return text;
     }
+    if (VoiceProfiles.isProfileActive()) {
+      Spannable unmarked = new SpannableString(text);
+      for (LocaleSpan mark : marks) {
+        unmarked.removeSpan(mark);
+      }
+      return unmarked;
+    }
+    Locale voice = voiceLanguage;
+    if (switchLanguages && switchDialects && !anyMarkIn(marks, voice)) {
+      return text;
+    }
     List<Run> marked = new ArrayList<>();
     for (Run run : runs(text)) {
-      marked.add(new Run(run.start(), run.end(), localeToSpeak(run.locale())));
+      marked.add(
+          new Run(run.start(), run.end(), unlessVoiceLanguage(localeToSpeak(run.locale()), voice)));
     }
     Spannable spoken = new SpannableString(text);
     for (LocaleSpan mark : marks) {
@@ -151,6 +166,26 @@ public final class LanguageSwitch {
           new LocaleSpan(run.locale()), run.start(), run.end(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
     }
     return spoken;
+  }
+
+  /**
+   * Returns {@code locale}, or null when it is {@code voice}, the language that unmarked text is
+   * spoken in, so that the text needs no mark. Unicode extensions, such as the units chosen in
+   * regional preferences, don't change the voice and are not compared.
+   */
+  static @Nullable Locale unlessVoiceLanguage(@Nullable Locale locale, Locale voice) {
+    return (locale != null && locale.stripExtensions().equals(voice.stripExtensions()))
+        ? null
+        : locale;
+  }
+
+  private static boolean anyMarkIn(LocaleSpan[] marks, Locale voice) {
+    for (LocaleSpan mark : marks) {
+      if (mark.getLocale() != null && unlessVoiceLanguage(mark.getLocale(), voice) == null) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /**

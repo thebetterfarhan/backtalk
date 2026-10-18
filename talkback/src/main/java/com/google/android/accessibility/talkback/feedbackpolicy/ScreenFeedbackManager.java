@@ -29,6 +29,7 @@ import android.text.SpannableString;
 import android.text.SpannableStringBuilder;
 import android.text.TextUtils;
 import android.text.style.LocaleSpan;
+import android.view.KeyEvent;
 import android.view.accessibility.AccessibilityEvent;
 import android.view.accessibility.AccessibilityNodeInfo;
 import android.view.accessibility.AccessibilityWindowInfo;
@@ -40,6 +41,7 @@ import com.google.android.accessibility.talkback.compositor.Compositor;
 import com.google.android.accessibility.talkback.eventprocessor.EventState;
 import com.google.android.accessibility.talkback.eventprocessor.ProcessorAccessibilityHints;
 import com.google.android.accessibility.talkback.flags.FeatureFlagReader;
+import com.google.android.accessibility.talkback.gesture.GestureHints;
 import com.google.android.accessibility.talkback.gesture.GestureShortcutMapping;
 import com.google.android.accessibility.utils.AccessibilityEventListener;
 import com.google.android.accessibility.utils.AccessibilityNodeInfoUtils;
@@ -108,6 +110,25 @@ public class ScreenFeedbackManager
 
   private final Pipeline.FeedbackReturner pipeline;
 
+  /** Event time of the last key press that stopped speech, in uptime milliseconds. */
+  private long speechStoppedByKeyTime = 0;
+
+  /**
+   * Set from the "Speak first item without waiting for window name" setting. When on, the
+   * window name interrupts speech that started before the window changed, and the first item
+   * focused in the new window interrupts the window name. Other window speech, such as volume
+   * and keyboard announcements, is not affected.
+   */
+  private static volatile boolean firstItemInterruptsWindowName;
+
+  public static void setFirstItemInterruptsWindowName(boolean interrupts) {
+    firstItemInterruptsWindowName = interrupts;
+  }
+
+  public static boolean firstItemInterruptsWindowName() {
+    return firstItemInterruptsWindowName;
+  }
+
   public ScreenFeedbackManager(
       AccessibilityService service,
       @NonNull WindowEventInterpreter windowEventInterpreter,
@@ -134,6 +155,21 @@ public class ScreenFeedbackManager
     getInterpreter().interpret(event, eventId, allowAnnounce(event));
   }
 
+  /**
+   * Records a key press that stopped speech. A window change that started before it isn't
+   * announced, so that its title isn't spoken after the speech the key caused.
+   */
+  public void onSpeechStoppedByKey(KeyEvent keyEvent) {
+    speechStoppedByKeyTime = keyEvent.getEventTime();
+  }
+
+  /** Returns whether a key stopped speech after this window change started. */
+  private boolean speechStoppedByKeySince(
+      WindowEventInterpreter.EventInterpretation interpretation) {
+    long windowChangeTime = interpretation.getEventStartTime();
+    return windowChangeTime != 0 && speechStoppedByKeyTime >= windowChangeTime;
+  }
+
   public WindowEventInterpreter getInterpreter() {
     // Interpreter requires an initialized listener, so add listener on-demand.
     if (!listeningToInterpreter) {
@@ -156,7 +192,8 @@ public class ScreenFeedbackManager
       boolean forceFeedbackEvenIfAudioPlaybackActive,
       boolean forceFeedbackEvenIfMicrophoneActive,
       boolean forceFeedbackEvenIfSsbActive,
-      boolean sourceIsVolumeControl) {
+      boolean sourceIsVolumeControl,
+      int queueMode) {
     if ((hint != null)) {
       pipeline.returnFeedback(
           eventId, ProcessorAccessibilityHints.screenEventToHint(hint, service, compositor));
@@ -178,7 +215,7 @@ public class ScreenFeedbackManager
 
     SpeechController.SpeakOptions speakOptions =
         SpeechController.SpeakOptions.create()
-            .setQueueMode(SpeechController.QUEUE_MODE_UNINTERRUPTIBLE_BY_NEW_SPEECH)
+            .setQueueMode(queueMode)
             .setFlags(flags);
 
     pipeline.returnFeedback(
@@ -217,7 +254,14 @@ public class ScreenFeedbackManager
     @Nullable Announcement announcement = interpretation.getAnnouncement();
     boolean sourceIsVolumeControl =
         (announcement != null) && announcement.isFromVolumeControlPanel();
+    boolean firstPart = true;
     for (FeedbackPart feedbackPart : feedback.getParts()) {
+      int queueMode =
+          !(firstItemInterruptsWindowName && feedbackPart.isWindowName())
+              ? SpeechController.QUEUE_MODE_UNINTERRUPTIBLE_BY_NEW_SPEECH
+              : firstPart
+                  ? SpeechController.QUEUE_MODE_INTERRUPT
+                  : SpeechController.QUEUE_MODE_QUEUE;
       speak(
           feedbackPart.getSpeech(),
           feedbackPart.getHint(),
@@ -225,7 +269,9 @@ public class ScreenFeedbackManager
           feedbackPart.getForceFeedbackEvenIfAudioPlaybackActive(),
           feedbackPart.getForceFeedbackEvenIfMicrophoneActive(),
           feedbackPart.getForceFeedbackEvenIfSsbActive(),
-          sourceIsVolumeControl);
+          sourceIsVolumeControl,
+          queueMode);
+      firstPart = false;
     }
   }
 
@@ -261,7 +307,8 @@ public class ScreenFeedbackManager
     // Dialog opened events should be read regardless of whether the windows are stable.
     if (FeatureFlagReader.enableSpeakDialogContent(service)
         && interpretation.isWebDialogOpenedEvent()) {
-      return interpretation.isAllowAnnounce();
+      return interpretation.isAllowAnnounce()
+          && !speechStoppedByKeySince(interpretation);
     }
 
     // For original event, perform some state & UI actions, even if windows are unstable.
@@ -272,7 +319,9 @@ public class ScreenFeedbackManager
     }
 
     // Only speak if windows are stable and the event allows announcement.
-    return interpretation.areWindowsStable() && interpretation.isAllowAnnounce();
+    return interpretation.areWindowsStable()
+        && interpretation.isAllowAnnounce()
+        && !speechStoppedByKeySince(interpretation);
   }
 
   private static Resources getLocalizedResources(Context context, Locale desiredLocale) {
@@ -450,6 +499,7 @@ public class ScreenFeedbackManager
       if (!TextUtils.isEmpty(utterance)) {
         feedback.addPart(
             new FeedbackPart(utterance)
+                .windowName(true)
                 .hint(hint)
                 .forceFeedbackEvenIfAudioPlaybackActive(true)
                 .forceFeedbackEvenIfMicrophoneActive(true));
@@ -532,7 +582,9 @@ public class ScreenFeedbackManager
         }
         String utterance =
             (FeatureSupport.isMultiFingerGestureSupported() && gesture != null)
-                ? context.getString(R.string.suggestions_window_available_with_gesture, gesture)
+                ? context.getString(
+                    R.string.suggestions_window_available_with_gesture,
+                    GestureHints.lowerCaseFirst(context, gesture))
                 : context.getString(R.string.suggestions_window_available);
         feedback.addPart(
             new FeedbackPart(utterance)
@@ -659,9 +711,21 @@ public class ScreenFeedbackManager
     private boolean forceFeedbackEvenIfAudioPlaybackActive = false;
     private boolean forceFeedbackEvenIfMicrophoneActive = false;
     private boolean forceFeedbackEvenIfSsbActive = false;
+    private boolean windowName = false;
 
     public FeedbackPart(CharSequence speech) {
       this.speech = speech;
+    }
+
+    /** Marks the part that names the window, as opposed to an announcement. */
+    @CanIgnoreReturnValue
+    public FeedbackPart windowName(boolean windowName) {
+      this.windowName = windowName;
+      return this;
+    }
+
+    public boolean isWindowName() {
+      return windowName;
     }
 
     @CanIgnoreReturnValue

@@ -29,5 +29,7 @@ braille/translate/.cxx/
 braille/translate/build/
 build/
 proguard/build/
+scripting/quickjs/.cxx/
+scripting/quickjs/build/
 talkback/build/
 utils/build/
