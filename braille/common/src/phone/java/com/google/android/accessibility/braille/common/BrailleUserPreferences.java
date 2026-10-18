@@ -406,10 +406,15 @@ public class BrailleUserPreferences {
   @KeyboardEchoType
   public static int readKeyboardEchoForBacktalk(Context context) {
     int echo = readKeyboardEcho(context);
-    if (echo == PREF_ECHO_CHARACTERS && readContractedMode(context)) {
-      return PREF_ECHO_NONE;
+    if (echo != PREF_ECHO_CHARACTERS) {
+      return echo;
     }
-    return echo;
+    // Report "none" only when the active buffer really is contracted; a code without
+    // contracted support stays uncontracted even when the toggle says otherwise.
+    boolean contracted =
+        readContractedMode(context)
+            && readCurrentActiveInputCodeAndCorrect(context).isSupportsContracted(context);
+    return contracted ? PREF_ECHO_NONE : echo;
   }
 
   /** Reads layout mode. */
