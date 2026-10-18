@@ -16,6 +16,10 @@ captures/
 *.jks
 *.keystore
 
+## build outputs
+*.apk
+*.aab
+
 ## generated intermediates
 braille/brailledisplay/build/
 braille/brailledisplayanalytics/build/
