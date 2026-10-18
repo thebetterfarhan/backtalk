@@ -530,7 +530,8 @@ public class AccessibilityNodeInfoUtils {
       return null;
     }
 
-    final CharSequence state = node.getStateDescription();
+    @Nullable CharSequence overridden = NodeOverrides.state(node);
+    final CharSequence state = overridden != null ? overridden : node.getStateDescription();
     if (!TextUtils.isEmpty(state) && (TextUtils.getTrimmedLength(state) > 0)) {
       return state;
     }
@@ -842,6 +843,13 @@ public class AccessibilityNodeInfoUtils {
     if (node == null) {
       LogUtils.v(TAG, "Don't focus, node=null");
       return false;
+    }
+    if (NodeOverrides.hidden(node)) {
+      LogUtils.v(TAG, "Don't focus, a script hides it");
+      return false;
+    }
+    if (NodeOverrides.grouped(node)) {
+      return isVisible(node);
     }
     // Inside views that support web navigation, we delegate focus to the view itself and
     // assume that it navigates to and focuses the correct elements.
@@ -1910,6 +1918,7 @@ public class AccessibilityNodeInfoUtils {
     return (node != null)
         && isVisible(node)
         && (node.isScreenReaderFocusable()
+            || NodeOverrides.grouped(node)
             || isActionableForAccessibility(node)
             || isAdjustableSlider(node));
   }
@@ -2500,6 +2509,21 @@ public class AccessibilityNodeInfoUtils {
   }
 
   /**
+   * Checks if the app keeps a selection in {@code node} that can be read from it: editable text,
+   * or selectable text that is not web content. Chrome marks text on web pages selectable, but the
+   * item does not show a selection made by moving through it, so Backtalk keeps that selection.
+   */
+  public static boolean keepsAppSelection(@Nullable AccessibilityNodeInfoCompat node) {
+    if (node == null) {
+      return false;
+    }
+    if (Role.getRole(node) == Role.ROLE_EDIT_TEXT || node.isEditable()) {
+      return true;
+    }
+    return isNonEditableSelectableText(node) && !WebInterfaceUtils.isWebContainer(node);
+  }
+
+  /**
    * Gets a list of URLs contained within an {@link AccessibilityNodeInfoCompat}.
    *
    * @param node The node that will be searched for links
@@ -2916,6 +2940,10 @@ public class AccessibilityNodeInfoUtils {
   // TODO On pre-N devices, the framework ListView/GridView will mark non-headers
   // as headers. The workaround should be removed when TalkBack doesn't support android M.
   public static boolean isHeading(AccessibilityNodeInfoCompat node) {
+    @Nullable Boolean overridden = NodeOverrides.heading(node);
+    if (overridden != null) {
+      return overridden;
+    }
     if (!FeatureSupport.isHeadingWorks()) {
       AccessibilityNodeInfoCompat collectionRoot = getCollectionRoot(node);
       if (nodeIsListOrGrid(collectionRoot) && !WebInterfaceUtils.isWebContainer(collectionRoot)) {

@@ -31,6 +31,7 @@ import androidx.core.view.accessibility.AccessibilityNodeInfoCompat;
 import com.google.android.accessibility.talkback.compositor.roledescription.RoleDescriptionExtractor;
 import com.google.android.accessibility.talkback.eventprocessor.ProcessorPhoneticLetters;
 import com.google.android.accessibility.talkback.imagecaption.ImageContents;
+import com.google.android.accessibility.talkback.scripting.Scripts;
 import com.google.android.accessibility.utils.AccessibilityEventUtils;
 import com.google.android.accessibility.utils.Performance.EventId;
 import com.google.android.accessibility.utils.input.TextEventInterpretation;
@@ -511,6 +512,12 @@ public class Compositor {
         (options.preparedFeedback != null)
             ? options.preparedFeedback
             : getEventFeedback(event, options);
+    if (isSilencedByScript(event, options.sourceNode, eventFeedback)) {
+      if (runnable != null) {
+        runnable.run(SpeechController.STATUS_NOT_SPOKEN);
+      }
+      return;
+    }
 
     // Compose earcons.
     SpeakOptions speakOptions = null;
@@ -570,6 +577,11 @@ public class Compositor {
     // Compose speech, and speech parameters.
     CharSequence ttsOutput =
         eventFeedback.ttsOutput().isPresent() ? eventFeedback.ttsOutput().get() : "";
+    CharSequence scripted =
+        Scripts.rewriteSpeech(event, options.eventObject, options.sourceNode, ttsOutput);
+    if (scripted != null) {
+      ttsOutput = scripted;
+    }
     if (!TextUtils.isEmpty(ttsOutput)) {
       // Cleans up the TTS output if it is just 1 character long. This will announce single
       // symbols correctly.
@@ -619,6 +631,23 @@ public class Compositor {
         runnable.run(SpeechController.STATUS_NOT_SPOKEN);
       }
     }
+  }
+
+  /**
+   * Whether a script rule silences the source of an event that an item sends by itself changing:
+   * a content change, a selection or an announcement. Only feedback that would be given is checked,
+   * as finding out can ask the app about each item around the source.
+   */
+  private static boolean isSilencedByScript(
+      int event, @Nullable AccessibilityNodeInfoCompat source, EventFeedback feedback) {
+    if (event != EVENT_TYPE_WINDOW_CONTENT_CHANGED
+        && event != EVENT_TYPE_VIEW_SELECTED
+        && event != EVENT_TYPE_ANNOUNCEMENT) {
+      return false;
+    }
+    boolean speaks =
+        feedback.ttsOutput().isPresent() && !TextUtils.isEmpty(feedback.ttsOutput().get());
+    return (speaks || feedback.earcon() != -1) && Scripts.isSilenced(source);
   }
 
   private void addSpeech(

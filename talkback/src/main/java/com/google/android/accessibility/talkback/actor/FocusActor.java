@@ -50,6 +50,7 @@ import com.google.android.accessibility.talkback.focusmanagement.interpreter.Scr
 import com.google.android.accessibility.talkback.focusmanagement.record.AccessibilityFocusActionHistory;
 import com.google.android.accessibility.talkback.focusmanagement.record.FocusActionInfo;
 import com.google.android.accessibility.talkback.focusmanagement.record.FocusActionRecord;
+import com.google.android.accessibility.talkback.scripting.Scripts;
 import com.google.android.accessibility.talkback.utils.LinkUtils;
 import com.google.android.accessibility.talkback.utils.LinkUtils.LinkSpan;
 import com.google.android.accessibility.utils.AccessibilityNodeInfoUtils;
@@ -144,6 +145,11 @@ public class FocusActor implements UserInputEventListener {
     if (node == null || pipeline == null) {
       return false;
     }
+    node = Scripts.actionTarget(node, false);
+
+    // Drop the focused item's usage hint, which would otherwise be spoken after the item is
+    // activated, ahead of the next window's name.
+    pipeline.returnFeedback(eventId, Feedback.interrupt(Feedback.HINT, /* level= */ 2));
 
     if (globalVariables.supportClickableLinks() && tryClickLinks(node, eventId)) {
       return true;
@@ -187,7 +193,9 @@ public class FocusActor implements UserInputEventListener {
     if (node == null || pipeline == null) {
       return false;
     }
-    return pipeline.returnFeedback(eventId, Feedback.nodeAction(node, ACTION_LONG_CLICK.getId()));
+    return pipeline.returnFeedback(
+        eventId,
+        Feedback.nodeAction(Scripts.actionTarget(node, true), ACTION_LONG_CLICK.getId()));
   }
 
   public boolean clickCurrentHierarchical(@Nullable EventId eventId) {

@@ -149,6 +149,8 @@ public class TalkBackPreferenceFilter {
     CUSTOM_LABELS(
         R.string.pref_manage_labels_key,
         HIDDEN_ON_TV | HIDDEN_SETUP | HIDDEN_ON_XR),
+    // Scripts run on phones only; the watch build has no Scripts screen to open.
+    SCRIPTS(R.string.pref_scripts_key, HIDDEN_ON_WATCH),
     SINGLE_TAP_ACTIVATION(
         R.string.pref_single_tap_key, HIDDEN_ON_TV | HIDDEN_ON_XR),
     REDUCE_WINDOW_DELAY(
@@ -179,9 +181,17 @@ public class TalkBackPreferenceFilter {
     NEW_FEATURE(R.string.pref_new_feature_in_talkback_entry_point_key, HIDDEN_ON_TV | HIDDEN_ON_XR),
     PROXIMITY(R.string.pref_proximity_key, HIDDEN_ON_TV | HIDE_NO_PROXIMITY_SENSOR | HIDDEN_ON_XR),
     // A watch is not held to the ear for calls.
-    SPEAKERPHONE_AWAY_FROM_EAR(R.string.pref_speakerphone_away_from_ear_key, HIDDEN_ON_WATCH),
+    SPEAKERPHONE_AWAY_FROM_EAR(
+        R.string.pref_speakerphone_away_from_ear_key, HIDDEN_ON_WATCH | HIDDEN_ON_TV),
     // Pausing is turned off on watches, so there is nothing to resume.
-    RESUME_BACKTALK(R.string.pref_resume_backtalk_key, HIDDEN_ON_WATCH),
+    RESUME_BACKTALK(R.string.pref_resume_backtalk_key, HIDDEN_ON_WATCH | HIDDEN_ON_TV),
+    // Pausing is turned off on TVs too: the volume keys often go to the TV or a soundbar, and there
+    // is no notification shade to resume from.
+    PAUSE_BACKTALK_MENU_ITEM(
+        R.string.pref_show_context_menu_pause_backtalk_setting_key, HIDDEN_ON_WATCH | HIDDEN_ON_TV),
+    // A TV has no touchscreen for direct touch, and no gesture for the status readout.
+    DIRECT_TOUCH(R.string.pref_direct_touch_key, HIDDEN_ON_WATCH | HIDDEN_ON_TV),
+    STATUS_READOUT(R.string.pref_status_readout_key, HIDDEN_ON_TV),
     SPEECH_VOLUME(R.string.pref_speech_volume_key, HIDE_HAS_VOLUME_KEY),
     BRAILLE_KEYBOARD(
         R.string.pref_brailleime_key,
@@ -228,6 +238,8 @@ public class TalkBackPreferenceFilter {
     EXPLORE_BY_TOUCH(R.string.pref_explore_by_touch_reflect_key, HIDDEN_ON_TV | HIDDEN_ON_XR),
     // Gesture/Verbosity Settings.
     CONFIG_PHYSICAL_KEYBOARD_ECHO(R.string.pref_keyboard_echo_physical_key, HIDDEN_ON_WATCH),
+    INTERRUPT_TYPING(R.string.pref_interrupt_typing_key, HIDDEN_ON_WATCH),
+    INTERRUPT_ENTER(R.string.pref_interrupt_enter_key, HIDDEN_ON_WATCH),
     LIMIT_FREQUENT_CONTENT_CHANGE_ANNOUNCEMENT(
         R.string.pref_allow_frequent_content_change_announcement_key, HIDE_FREQUENT_UPDATE_UI_FLAG),
     SPEAK_WHEN_SCREEN_OFF(R.string.pref_screenoff_key, HIDDEN_ON_XR),

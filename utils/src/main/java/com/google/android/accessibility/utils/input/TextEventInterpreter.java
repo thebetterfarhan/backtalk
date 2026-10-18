@@ -44,6 +44,8 @@ import com.google.android.accessibility.utils.monitor.InputModeTracker;
 import com.google.android.accessibility.utils.monitor.VoiceActionDelegate;
 import com.google.android.accessibility.utils.output.ActorStateProvider;
 import com.google.android.accessibility.utils.output.EditTextActionHistory;
+import com.google.android.accessibility.utils.output.EmojiSpeech;
+import com.google.android.accessibility.utils.output.CopySelection;
 import com.google.android.accessibility.utils.output.SelectionStateReader;
 import com.google.android.accessibility.utils.output.SpeechCleanupUtils;
 import com.google.android.libraries.accessibility.utils.log.LogUtils;
@@ -626,6 +628,28 @@ public class TextEventInterpreter {
     } else if (eventTypeInt
         == AccessibilityEvent.TYPE_VIEW_TEXT_TRAVERSED_AT_MOVEMENT_GRANULARITY) {
 
+      // Copying mode: the selection is kept by Backtalk, so the move is described by what it
+      // selected and deselected.
+      @Nullable CopySelection copySelection =
+          isSelectionModeActive ? selectionStateReader.copySelection() : null;
+      if (copySelection != null && copySelection.isActive()) {
+        @Nullable AccessibilityNodeInfoCompat copySource =
+            AccessibilityEventUtils.sourceCompat(event);
+        if (interpretCopyingModeMove(
+            interpretation,
+            copySelection,
+            copySource,
+            AccessibilityNodeInfoUtils.getText(copySource),
+            text,
+            fromIndex,
+            toIndex,
+            event.getAction()
+                != AccessibilityNodeInfoCompat.ACTION_PREVIOUS_AT_MOVEMENT_GRANULARITY,
+            isPassword)) {
+          return interpretation;
+        }
+      }
+
       if (fromIndex >= 0 && fromIndex <= textLength && toIndex >= 0 && toIndex <= textLength) {
         interpretation.setEvent(TextEventInterpretation.SELECTION_TEXT_TRAVERSAL);
         interpretation.setReason("fromIndex and toIndex both within text range");
@@ -636,7 +660,16 @@ public class TextEventInterpreter {
             == AccessibilityNodeInfoCompat.MOVEMENT_GRANULARITY_CHARACTER) {
           int charIndex = Math.min(fromIndex, toIndex);
           if (0 <= charIndex && charIndex < textLength) {
-            traversedText = getSubsequenceWithSpans(text, charIndex, charIndex + 1);
+            int[] range =
+                characterRange(
+                    mContext,
+                    text,
+                    charIndex,
+                    Math.max(fromIndex, toIndex),
+                    event.getAction()
+                        != AccessibilityNodeInfoCompat.ACTION_PREVIOUS_AT_MOVEMENT_GRANULARITY);
+            traversedText =
+                range == null ? "" : getSubsequenceWithSpans(text, range[0], range[1]);
           }
         } else {
           traversedText =
@@ -653,6 +686,60 @@ public class TextEventInterpreter {
     mHistory.setLastToIndex(event.getToIndex());
 
     return interpretation.setInvalid("Unhandled selection event.");
+  }
+
+  /**
+   * Describes a move of the text cursor in copying mode by the text it selected and deselected, and
+   * keeps the selection.
+   *
+   * @param viewText the text of the view, which the framework moves through, before its
+   *     description
+   * @param eventText the text to use if the view has none
+   * @return whether the move was in copying mode, and so is described.
+   */
+  @VisibleForTesting
+  static boolean interpretCopyingModeMove(
+      TextEventInterpretation interpretation,
+      @Nullable CopySelection copySelection,
+      @Nullable AccessibilityNodeInfoCompat source,
+      @Nullable CharSequence viewText,
+      @Nullable CharSequence eventText,
+      int fromIndex,
+      int toIndex,
+      boolean forward,
+      boolean isPassword) {
+    if (copySelection == null || !copySelection.isActive() || isPassword) {
+      return false;
+    }
+    CopySelection.@Nullable Change change =
+        copySelection.move(
+            source, TextUtils.isEmpty(viewText) ? eventText : viewText, fromIndex, toIndex, forward);
+    if (change == null) {
+      return false;
+    }
+    interpretation.setEvent(TextEventInterpretation.SELECTION_MOVE_CURSOR_WITH_SELECTION);
+    interpretation.setReason("Copying mode move");
+    interpretation.setSelectedText(change.selected);
+    interpretation.setDeselectedText(change.deselected);
+    return true;
+  }
+
+  /**
+   * Returns the text to speak for a move by character over {@code start} to {@code end}, or null
+   * to say nothing. An emoji, which may be several characters such as one with a skin tone, is
+   * taken whole when Backtalk speaks emoji, so that it can be named. Apps that move through its
+   * parts one at a time get it named once, as the move enters it, and nothing for the other parts,
+   * which ProcessorEmojiTraversal moves over.
+   */
+  @VisibleForTesting
+  static int @Nullable [] characterRange(
+      Context context, CharSequence text, int start, int end, boolean forward) {
+    int[] emoji = EmojiSpeech.emojiAround(context, text, start);
+    if (emoji == null) {
+      return new int[] {start, start + 1};
+    }
+    boolean entering = forward ? start == emoji[0] : end >= emoji[1];
+    return entering ? emoji : null;
   }
 
   private boolean isUpDownKey() {
@@ -852,6 +939,11 @@ public class TextEventInterpreter {
     return PUNCTUATION_PATTERN.matcher(Character.toString(ch)).matches();
   }
 
+  /** Returns whether typing {@code ch} can make keyboard echo speak the word before it. */
+  public static boolean endsWordForEcho(char ch) {
+    return isWhiteSpace(ch) || isPunctuation(ch);
+  }
+
   private boolean appendLastWordIfNeeded(
       AccessibilityEvent event, TextEventInterpretation interpretation) {
     // Do not handle word's keyboard echo for password field.
@@ -867,7 +959,7 @@ public class TextEventInterpreter {
     final int wordEnd = getWordEchoEnd(addedText);
     char lastChar = addedText.charAt(wordEnd);
     // Echo word only occurs when the added character is either a space or a punctuation symbol.
-    if (!isWhiteSpace(lastChar) && !isPunctuation(lastChar)) {
+    if (!endsWordForEcho(lastChar)) {
       return false;
     }
 

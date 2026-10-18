@@ -113,6 +113,7 @@ import com.google.android.accessibility.brailleime.settings.BrailleImePreference
 import com.google.android.accessibility.brailleime.tutorial.TutorialView.TutorialCallback;
 import com.google.android.accessibility.brailleime.tutorial.TutorialView.TutorialState.State;
 import com.google.android.accessibility.utils.AccessibilityServiceCompatUtils.Constants;
+import com.google.android.accessibility.utils.monitor.RecentUserInput;
 import com.google.android.accessibility.utils.BuildVersionUtils;
 import com.google.android.accessibility.utils.KeyboardUtils;
 import com.google.android.accessibility.utils.input.CursorGranularity;
@@ -407,8 +408,6 @@ public class BrailleIme extends InputMethodService {
   @Override
   public void onConfigurationChanged(Configuration newConfig) {
     super.onConfigurationChanged(newConfig);
-    // Folding or unfolding switches between the phone and tablet layouts.
-    flatTurnDetector.setQuarterTurns(!BrailleUtils.isPhoneSizedDevice(getResources()));
     if (orientation != newConfig.orientation) {
       orientation = newConfig.orientation;
       keyboardView.onOrientationChanged(newConfig.orientation);
@@ -494,7 +493,7 @@ public class BrailleIme extends InputMethodService {
           }
         });
     // Watches the whole time, so that a turn on the table that tilts the device for a moment counts.
-    flatTurnDetector.start(/* quarterTurns= */ !BrailleUtils.isPhoneSizedDevice(getResources()));
+    flatTurnDetector.start();
     layoutOrientator.startIfNeeded();
     updateNavigationBarColor();
     brailleImeActor =
@@ -1138,7 +1137,8 @@ public class BrailleIme extends InputMethodService {
         @Override
         public OptionalInt getOnScreenKeyboardEcho() {
           return isInputViewShown() && !brailleDisplayConnectedAndNotSuspended
-              ? OptionalInt.of(BrailleUserPreferences.readKeyboardEcho(BrailleIme.this))
+              ? OptionalInt.of(
+                  BrailleUserPreferences.readKeyboardEchoForBacktalk(BrailleIme.this))
               : OptionalInt.empty();
         }
       };
@@ -1464,7 +1464,15 @@ public class BrailleIme extends InputMethodService {
         }
 
         @Override
+        public boolean wasHeldUprightInScreenAway() {
+          // With the layout chosen by hand, screen-away mode is always screen-away typing.
+          return !layoutOrientatorCallback.useSensorsToDetectLayout()
+              || layoutOrientator.wasHeldUprightInScreenAway();
+        }
+
+        @Override
         public boolean onSwipeProduced(Swipe swipe) {
+          RecentUserInput.mark();
           if (brailleImeGestureController.performSwipeAction(swipe)) {
             showOnBrailleDisplay();
             if (!brailleDisplayConnectedAndNotSuspended) {
@@ -1477,6 +1485,7 @@ public class BrailleIme extends InputMethodService {
 
         @Override
         public boolean onDotHoldAndDotSwipe(DotHoldSwipe dotHoldSwipe) {
+          RecentUserInput.mark();
           if (brailleImeGestureController.performDotHoldAndSwipeAction(dotHoldSwipe)) {
             showOnBrailleDisplay();
             return true;
@@ -1494,12 +1503,14 @@ public class BrailleIme extends InputMethodService {
 
         @Override
         public boolean onHoldProduced(int pointersHeldCount) {
+          RecentUserInput.mark();
           return brailleImeGestureController.performDotHoldAction(pointersHeldCount);
         }
 
         @Nullable
         @Override
         public String onBrailleProduced(BrailleCharacter brailleChar) {
+          RecentUserInput.mark();
           String result = brailleImeGestureController.performTyping(brailleChar);
           if (!TextUtils.isEmpty(result)) {
             escapeReminder.restartTimer();
