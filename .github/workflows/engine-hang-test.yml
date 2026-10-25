@@ -37,8 +37,8 @@ jobs:
           export ANDROID_AVD_HOME="${HOME}/.android/avd"
           mkdir -p "${ANDROID_AVD_HOME}"
           yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager "platform-tools" "emulator" "platforms;android-35" "system-images;android-35;google_apis;x86_64"
-          echo "no" | avdmanager create avd --force --name backtalk-hang --package "system-images;android-35;google_apis;x86_64" --device "pixel_2"
+          sdkmanager "platform-tools" "emulator" "platforms;android-30" "system-images;android-30;google_apis;x86"
+          echo "no" | avdmanager create avd --force --name backtalk-hang --package "system-images;android-30;google_apis;x86" --device "pixel_2"
           test -f "${ANDROID_AVD_HOME}/backtalk-hang.ini"
           emulator -avd backtalk-hang -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect -accel off > emulator.log 2>&1 &
           timeout 300 adb wait-for-device
