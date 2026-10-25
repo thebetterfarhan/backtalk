@@ -4,7 +4,8 @@
 apply plugin: 'org.jetbrains.kotlin.plugin.compose'
 
 ext {
-    talkbackApplicationId = "fyi.quin.backtalk"
+    talkbackApplicationId = project.hasProperty('backtalkTestPackage')
+        ? "fyi.quin.backtalk.test" : "fyi.quin.backtalk"
 }
 
 android {
@@ -14,6 +15,8 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
     defaultConfig {
+        manifestPlaceholders['backtalkLabel'] = project.hasProperty('backtalkTestPackage')
+            ? 'Backtalk Test' : '@string/talkback_title'
         vectorDrawables.useSupportLibrary = true
         multiDexEnabled = true
         minSdk = 26

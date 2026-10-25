@@ -167,7 +167,7 @@
             android:icon="@drawable/icon"
             android:name="com.google.android.marvin.talkback.TalkBackService"
             android:exported="true"
-            android:label="@string/talkback_title"
+            android:label="${backtalkLabel}"
             android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE"
             android:settingsActivity="com.google.android.accessibility.talkback.preference.TalkBackPreferencesActivity"
             android:directBootAware="true">

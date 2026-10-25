@@ -81,6 +81,9 @@ object UpdateChecker {
    */
   @WorkerThread
   fun check(context: Context): UpdateInfo? {
+    if (context.packageName != AppIdMove.OLD_PACKAGE && context.packageName != AppIdMove.NEW_PACKAGE) {
+      return null
+    }
     val channel =
       if (context.packageName == AppIdMove.OLD_PACKAGE) {
         checkMove(context)?.let {

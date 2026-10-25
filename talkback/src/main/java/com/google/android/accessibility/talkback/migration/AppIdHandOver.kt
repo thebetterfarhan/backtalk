@@ -69,7 +69,7 @@ object AppIdHandOver {
    */
   @JvmStatic
   fun onServiceConnected(context: Context, onOldServiceGone: Runnable) {
-    if (context.packageName == AppIdMove.OLD_PACKAGE) {
+    if (context.packageName != AppIdMove.NEW_PACKAGE) {
       return
     }
     try {
