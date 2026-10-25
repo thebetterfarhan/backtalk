@@ -27,6 +27,11 @@ public final class SilentTtsService extends TextToSpeechService {
   }
 
   @Override
+  protected int onIsLanguageAvailable(String language, String country, String variant) {
+    return TextToSpeech.LANG_AVAILABLE;
+  }
+
+  @Override
   protected void onSynthesizeText(SynthesisRequest request, SynthesisCallback callback) {
     String text = request.getCharSequenceText() == null ? "" : request.getCharSequenceText().toString();
     if (!hangInjected && text.length() > 100) {
