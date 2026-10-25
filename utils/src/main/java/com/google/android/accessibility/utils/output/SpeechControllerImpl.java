@@ -141,9 +141,6 @@ public class SpeechControllerImpl implements SpeechController {
    */
   private static final long SAVED_FEEDBACK_FOR_PAUSE_TIME = 800;
 
-  /** Reusable map used for passing parameters to the TextToSpeech. */
-  private final HashMap<String, String> mSpeechParametersMap = new HashMap<>();
-
   /**
    * Priority queue of actions to perform before utterances start, ordered by ascending utterance
    * index.
@@ -1561,6 +1558,22 @@ public class SpeechControllerImpl implements SpeechController {
     if (queuedItemCompletedAction != null) {
       queuedItemCompletedAction.run(STATUS_INTERRUPTED);
     }
+
+    // A queued hint has no utterance ID yet, so its reserved completion action was not claimed.
+    if (item.getUtteranceId() == null) {
+      final int nextUtteranceIndex = peekNextUtteranceId();
+      final Iterator<UtteranceCompleteAction> iterator = mUtteranceCompleteActions.iterator();
+      while (iterator.hasNext()) {
+        final UtteranceCompleteAction action = iterator.next();
+        if (action.utteranceIndex == nextUtteranceIndex
+            && action.utteranceGroup == UTTERANCE_GROUP_CONTENT_HINTS
+            && !action.claimed) {
+          iterator.remove();
+          runUtteranceCompleteRunnable(action.runnable, STATUS_INTERRUPTED);
+          break;
+        }
+      }
+    }
   }
 
   /**
@@ -2094,9 +2107,7 @@ public class SpeechControllerImpl implements SpeechController {
       playHapticsFromFragment(fragment, eventId);
     }
 
-    // Reuse the global instance of speech parameters.
-    final HashMap<String, String> params = mSpeechParametersMap;
-    params.clear();
+    final HashMap<String, String> params = new HashMap<>();
 
     // Add all custom speech parameters.
     final Bundle speechParams = fragment.getSpeechParams();

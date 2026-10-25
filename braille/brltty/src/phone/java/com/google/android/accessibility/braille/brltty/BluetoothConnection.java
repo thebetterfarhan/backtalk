@@ -16,6 +16,7 @@
 
 package com.google.android.accessibility.braille.brltty;
 
+import android.annotation.SuppressLint;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import java.util.Set;
@@ -48,12 +49,17 @@ public class BluetoothConnection {
     return new BluetoothConnection(address).getName();
   }
 
+  @SuppressLint("MissingPermission")
   public final String getName() {
     BluetoothDevice device = getDevice();
     if (device == null) {
       return null;
     }
-    return device.getName();
+    try {
+      return device.getName();
+    } catch (SecurityException e) {
+      return null;
+    }
   }
 
   public final BluetoothDevice getDevice() {
@@ -63,9 +69,16 @@ public class BluetoothConnection {
     return bluetoothAdapter.getRemoteDevice(remoteAddressBytes);
   }
 
+  @SuppressLint("MissingPermission")
   public static int getPairedDeviceCount() {
     if (isUp()) {
-      Set<BluetoothDevice> devices = bluetoothAdapter.getBondedDevices();
+      Set<BluetoothDevice> devices;
+      try {
+        devices = bluetoothAdapter.getBondedDevices();
+      } catch (SecurityException e) {
+        pairedDevices = null;
+        return 0;
+      }
       if (devices != null) {
         pairedDevices = devices.toArray(new BluetoothDevice[devices.size()]);
         return pairedDevices.length;
@@ -83,12 +96,17 @@ public class BluetoothConnection {
     return device.getAddress();
   }
 
+  @SuppressLint("MissingPermission")
   public static String getPairedDeviceName(int index) {
     BluetoothDevice device = getPairedDevice(index);
     if (device == null) {
       return null;
     }
-    return device.getName();
+    try {
+      return device.getName();
+    } catch (SecurityException e) {
+      return null;
+    }
   }
 
   private static BluetoothDevice getPairedDevice(int index) {

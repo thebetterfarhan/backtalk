@@ -9,6 +9,7 @@ android {
 }
 
 dependencies {
+    compileOnly libs.wearable.runtime
     implementation project(':brailleinterfaces')
     implementation project(':brailletranslate')
     implementation project(':proguard')

@@ -44,6 +44,7 @@ javax-annotation-api = "javax.annotation:javax.annotation-api:1.3.2"
 androidx-wear = "androidx.wear:wear:1.4.0"
 androidx-wear-remote-interactions = "androidx.wear:wear-remote-interactions:1.2.0"
 wearable-support = "com.google.android.support:wearable:2.9.0"
+wearable-runtime = "com.google.android.wearable:wearable:2.9.0"
 zxing-core = "com.google.zxing:core:3.5.4"
 
 # On-device AI

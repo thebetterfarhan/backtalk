@@ -738,6 +738,9 @@ public class FailoverTextToSpeech {
   }
 
   private void addRecentUtteranceId(String utteranceId) {
+    if (utteranceId == null) {
+      return;
+    }
     recentUtteranceIds.add(utteranceId);
     while (recentUtteranceIds.size() > 10) {
       recentUtteranceIds.poll();
@@ -1823,8 +1826,6 @@ public class FailoverTextToSpeech {
     LogUtils.e(TAG, "TTS engine %s said nothing for %d ms, so it is hung", ttsEngine, quiet);
     engineQuietSince = 0;
     unfinishedUtterances.clear();
-    // A hung engine never sends the final chunk's callback, so stale chunks must not persist.
-    speechChunks.clear();
     boolean lowLatency = hungUtteranceId != null && lowLatencyRequests.containsKey(hungUtteranceId);
     // Speech waiting on the hung engine stops, so that it holds up nothing.
     mHandler.removeCallbacks(dropHeldSpeech);
@@ -1840,6 +1841,8 @@ public class FailoverTextToSpeech {
     if (hungUtteranceId != null && !lowLatency) {
       utteranceProgressCallback.onError(hungUtteranceId);
     }
+    // A hung engine never sends the final chunk's callback, so stale chunks must not persist.
+    speechChunks.clear();
   }
 
   /** Speaks the usual way with the current engine from now on. */

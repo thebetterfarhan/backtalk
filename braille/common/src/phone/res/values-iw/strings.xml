@@ -8,6 +8,7 @@
     <item quantity="one">נקודות %s</item>
     <item quantity="two">נקודות %s</item>
     <item quantity="other">נקודות %s</item>
+    <item quantity="many">%s</item>
   </plurals>
   <string name="remove_language_button_content_description">הסרה של %s</string>
   <string name="split_comma">, %s</string>

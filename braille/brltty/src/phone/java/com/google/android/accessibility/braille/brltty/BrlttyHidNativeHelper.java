@@ -16,6 +16,7 @@
 package com.google.android.accessibility.braille.brltty;
 
 import android.accessibilityservice.BrailleDisplayController;
+import android.os.Build;
 import androidx.annotation.Nullable;
 import android.util.Log;
 import com.google.android.apps.common.proguard.UsedByNative;
@@ -73,6 +74,9 @@ public final class BrlttyHidNativeHelper {
   @UsedByNative("hid_android.c")
   public static void writeBrailleDisplay(byte[] buffer) {
     Preconditions.checkNotNull(brailleDisplayController);
+    if (Build.VERSION.SDK_INT < 35) {
+      return;
+    }
     try {
       brailleDisplayController.write(buffer);
     } catch (IOException e) {
