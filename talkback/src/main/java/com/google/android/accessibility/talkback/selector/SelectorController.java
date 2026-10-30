@@ -1276,12 +1276,35 @@ public class SelectorController implements UserInputEventListener {
     return preserveWebReadingControl
         && hasNavigableWebContent
         && automaticSetting == ACTIONS
-        && currentSetting != ACTIONS
-        && currentSetting != Setting.GRANULARITY_DEFAULT
-        && currentSetting != GRANULARITY_WINDOWS
-        && currentSetting != GRANULARITY_CONTAINERS
-        && currentSetting != GRANULARITY_SEARCH
-        && !Granularity.getFromSetting(currentSetting).isEmpty();
+        && switch (currentSetting) {
+          case GRANULARITY_HEADINGS,
+              GRANULARITY_WORDS,
+              GRANULARITY_PARAGRAPHS,
+              GRANULARITY_CHARACTERS,
+              GRANULARITY_LINES,
+              GRANULARITY_LINKS,
+              GRANULARITY_CONTROLS,
+              GRANULARITY_WEB_LANDMARKS,
+              GRANULARITY_WEB_BUTTONS,
+              GRANULARITY_WEB_CHECKBOXES,
+              GRANULARITY_WEB_EDITFIELDS,
+              GRANULARITY_WEB_FOCUSABLES,
+              GRANULARITY_WEB_H1,
+              GRANULARITY_WEB_H2,
+              GRANULARITY_WEB_H3,
+              GRANULARITY_WEB_H4,
+              GRANULARITY_WEB_H5,
+              GRANULARITY_WEB_H6,
+              GRANULARITY_WEB_GRAPHICS,
+              GRANULARITY_WEB_LISTS,
+              GRANULARITY_WEB_LISTITEMS,
+              GRANULARITY_WEB_TABLES,
+              GRANULARITY_WEB_COMBOBOXES,
+              GRANULARITY_WEB_VISITED_LINKS,
+              GRANULARITY_WEB_UNVISITED_LINKS,
+              GRANULARITY_WEB_RADIOS -> true;
+          default -> false;
+        };
   }
 
   @Override
