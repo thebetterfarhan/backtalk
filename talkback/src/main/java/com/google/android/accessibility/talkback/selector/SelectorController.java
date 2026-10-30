@@ -1307,7 +1307,18 @@ public class SelectorController implements UserInputEventListener {
     if (contextualMenu.isPresent()) {
       // If a matched contextual setting is available, switch to that setting automatically.
       Setting newSetting = contextualMenu.get().getSetting();
-      if (newSetting != currentSetting) {
+      if (newSetting != currentSetting
+          && (newSetting != ACTIONS
+              || !shouldPreserveWebReadingControl(
+                  currentSetting,
+                  newSetting,
+                  prefs.getBoolean(
+                      context.getString(R.string.pref_preserve_web_reading_control_key),
+                      context
+                          .getResources()
+                          .getBoolean(R.bool.pref_preserve_web_reading_control_default)),
+                  WebInterfaceUtils.hasNavigableWebContent(
+                      AccessibilityNodeInfoCompat.wrap(nodeInfo))))) {
         settingToRestore = currentSetting;
         setCurrentSetting(
             EVENT_ID_UNTRACKED,
@@ -1324,6 +1335,23 @@ public class SelectorController implements UserInputEventListener {
       // item if the cached setting is also unavailable.
       restoreSetting();
     }
+  }
+
+  @VisibleForTesting
+  static boolean shouldPreserveWebReadingControl(
+      Setting currentSetting,
+      Setting automaticSetting,
+      boolean preserveWebReadingControl,
+      boolean hasNavigableWebContent) {
+    return preserveWebReadingControl
+        && hasNavigableWebContent
+        && automaticSetting == ACTIONS
+        && currentSetting != ACTIONS
+        && currentSetting != Setting.GRANULARITY_DEFAULT
+        && currentSetting != GRANULARITY_WINDOWS
+        && currentSetting != GRANULARITY_CONTAINERS
+        && currentSetting != GRANULARITY_SEARCH
+        && !Granularity.getFromSetting(currentSetting).isEmpty();
   }
 
   @Override
