@@ -38,6 +38,26 @@ class FocusAfterScrollTest {
     assertEquals(first.text, result?.text)
   }
 
+  @Test
+  fun invalidPivotFocusesLastVisibleItemWhenMovingBackward() {
+    val root = node("root")
+    node("first", root)
+    val last = node("last", root)
+    val strategy = OrderedTraversalStrategy(root)
+    val filter = object : Filter<AccessibilityNodeInfoCompat>() {
+      override fun accept(node: AccessibilityNodeInfoCompat): Boolean = node.isFocusable
+    }
+
+    val result = FocusProcessorForLogicalNavigation.findFocusAfterInvalidPivot(
+      strategy,
+      root,
+      TraversalStrategy.SEARCH_FOCUS_BACKWARD,
+      filter,
+    )
+
+    assertEquals(last.text, result?.text)
+  }
+
   private fun node(
     text: String,
     parent: AccessibilityNodeInfoCompat? = null,
