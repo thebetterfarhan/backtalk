@@ -26,14 +26,8 @@ dependencies {
 android {
     namespace = "com.android.talkback"
     defaultConfig {
-        def applicationIdOverride = project.findProperty('backtalkApplicationIdOverride')
-        applicationId = applicationIdOverride == null
-            ? talkbackApplicationId
-            : applicationIdOverride.toString()
-        def versionCodeOverride = project.findProperty('backtalkVersionCodeOverride')
-        versionCode = versionCodeOverride == null
-            ? backtalkVersionCodeBase + gitCommitCount
-            : versionCodeOverride.toString().toInteger()
+        applicationId = talkbackApplicationId
+        versionCode = backtalkVersionCodeBase + gitCommitCount
         versionName = talkbackVersionName + "-" + BUILD_TIMESTAMP
         minSdk = 26
         targetSdk = 36
