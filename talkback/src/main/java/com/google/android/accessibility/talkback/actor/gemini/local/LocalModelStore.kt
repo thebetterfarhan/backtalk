@@ -21,16 +21,25 @@ import java.io.IOException
 import java.io.InputStream
 
 /** Where the model files live, and how a file gets in by import from storage. */
-class LocalModelStore(private val dir: File) {
+class LocalModelStore(
+  private val dir: File,
+  private val models: List<LocalModel> = LocalModel.entries,
+) {
 
   fun file(model: LocalModel) = File(dir, model.localFileName)
 
   fun isInstalled(model: LocalModel): Boolean =
-    file(model).let { it.isFile && it.length() == model.sizeBytes }
+    file(model).let {
+      it.isFile &&
+        it.length() == model.sizeBytes &&
+        it.inputStream().use { input ->
+          ModelFiles.sha256(input).equals(model.sha256, ignoreCase = true)
+        }
+    }
 
   /** The model to run: [preferred] if it is installed, otherwise any installed model. */
   fun installed(preferred: LocalModel?): LocalModel? =
-    listOfNotNull(preferred).plus(LocalModel.entries).firstOrNull { isInstalled(it) }
+    listOfNotNull(preferred).plus(models).firstOrNull { isInstalled(it) }
 
   fun delete(model: LocalModel) {
     file(model).delete()
@@ -38,11 +47,11 @@ class LocalModelStore(private val dir: File) {
   }
 
   /** The models that are on the phone and complete. */
-  fun installedModels(): List<LocalModel> = LocalModel.entries.filter { isInstalled(it) }
+  fun installedModels(): List<LocalModel> = models.filter { isInstalled(it) }
 
   /** Models with part of a download on the phone but no complete file, and the bytes so far. */
   fun unfinishedDownloads(): List<Pair<LocalModel, Long>> =
-    LocalModel.entries.mapNotNull { model ->
+    models.mapNotNull { model ->
       partialBytes(model).takeIf { it > 0 && !isInstalled(model) }?.let { model to it }
     }
 

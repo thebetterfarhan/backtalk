@@ -51,6 +51,8 @@ import com.google.android.accessibility.utils.material.A11yAlertDialogWrapper
 import com.google.android.libraries.accessibility.utils.log.LogUtils
 import java.io.File
 import java.io.IOException
+import java.io.InputStream
+import java.io.OutputStream
 import java.net.HttpURLConnection
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
@@ -69,6 +71,7 @@ object Updater {
   internal const val PREF_LAST_CHECK_TIME = "update_last_check_time"
   internal const val PREF_LAST_NOTIFIED_BUILD = "update_last_notified_build"
   private const val APK_FILE_NAME = "backtalk.apk"
+  private const val MAX_APK_SIZE_BYTES = 100L * 1024L * 1024L
   private val CHECK_INTERVAL_MS = TimeUnit.DAYS.toMillis(1)
   private val POLL_INTERVAL_MS = TimeUnit.HOURS.toMillis(3)
   // Gives the network time to come up when the service starts at boot.
@@ -365,11 +368,33 @@ object Updater {
       if (code != HttpURLConnection.HTTP_OK) {
         throw IOException("Download returned HTTP $code")
       }
-      connection.inputStream.use { input -> file.outputStream().use { input.copyTo(it) } }
+      if (connection.contentLengthLong > MAX_APK_SIZE_BYTES) {
+        throw IOException("Download is too large")
+      }
+      connection.inputStream.use { input ->
+        file.outputStream().use { output ->
+          copyAtMost(input, output, MAX_APK_SIZE_BYTES)
+        }
+      }
+      return file
+    } catch (e: Exception) {
+      file.delete()
+      throw e
     } finally {
       connection.disconnect()
     }
-    return file
+  }
+
+  private fun copyAtMost(input: InputStream, output: OutputStream, maxBytes: Long) {
+    val buffer = ByteArray(64 * 1024)
+    var copied = 0L
+    while (true) {
+      val read = input.read(buffer)
+      if (read < 0) return
+      copied += read
+      if (copied > maxBytes) throw IOException("Download is too large")
+      output.write(buffer, 0, read)
+    }
   }
 
   private class WrongPackageException(message: String) : Exception(message)

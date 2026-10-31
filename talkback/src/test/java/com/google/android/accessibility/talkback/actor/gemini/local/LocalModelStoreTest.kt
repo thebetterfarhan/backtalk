@@ -17,7 +17,6 @@
 package com.google.android.accessibility.talkback.actor.gemini.local
 
 import java.io.File
-import java.io.RandomAccessFile
 import java.nio.file.Files
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -30,11 +29,33 @@ import org.junit.Test
 class LocalModelStoreTest {
   private lateinit var dir: File
   private lateinit var store: LocalModelStore
+  private val smallModel =
+    LocalModel(
+      id = "small",
+      name = "Small",
+      repo = "test/repo",
+      fileName = "small.litertlm",
+      sizeBytes = 3,
+      sha256 = ModelFiles.sha256(byteArrayOf(1, 2, 3).inputStream()),
+      minTotalRamGib = 3,
+      note = "Test model",
+    )
+  private val otherModel =
+    LocalModel(
+      id = "other",
+      name = "Other",
+      repo = "test/repo",
+      fileName = "other.litertlm",
+      sizeBytes = 4,
+      sha256 = ModelFiles.sha256(byteArrayOf(4, 5, 6, 7).inputStream()),
+      minTotalRamGib = 3,
+      note = "Test model",
+    )
 
   @Before
   fun setUp() {
     dir = Files.createTempDirectory("store").toFile()
-    store = LocalModelStore(dir)
+    store = LocalModelStore(dir, listOf(smallModel, otherModel))
   }
 
   @After
@@ -67,12 +88,9 @@ class LocalModelStoreTest {
   }
 
   @Test
-  fun installedFallsBackToTheOtherModel() {
-    RandomAccessFile(File(dir, LocalModel.E4B.fileName), "rw").use {
-      it.setLength(LocalModel.E4B.sizeBytes)
-    }
-    assertTrue(store.isInstalled(LocalModel.E4B))
-    assertEquals(LocalModel.E4B, store.installed(LocalModel.E2B))
+  fun aSameSizeCorruptFileIsNotInstalled() {
+    store.file(smallModel).writeBytes(byteArrayOf(0, 0, 0))
+    assertFalse(store.isInstalled(smallModel))
   }
 
   @Test
@@ -118,29 +136,25 @@ class LocalModelStoreTest {
 
   @Test
   fun managingListsCompleteModelsAndUnfinishedDownloadsSeparately() {
-    val small = LocalModel.fromId("smolvlm2-500m")!!
-    val other = LocalModel.fromId("internvl3-1b")!!
-    RandomAccessFile(store.file(small), "rw").use { it.setLength(small.sizeBytes) }
-    ModelFiles.partFile(store.file(other)).writeBytes(ByteArray(1234))
+    store.file(smallModel).writeBytes(byteArrayOf(1, 2, 3))
+    ModelFiles.partFile(store.file(otherModel)).writeBytes(ByteArray(1234))
 
-    assertEquals(listOf(small), store.installedModels())
-    assertEquals(listOf(other to 1234L), store.unfinishedDownloads())
-    assertEquals(small.sizeBytes + 1234L, store.usedBytes())
+    assertEquals(listOf(smallModel), store.installedModels())
+    assertEquals(listOf(otherModel to 1234L), store.unfinishedDownloads())
+    assertEquals(smallModel.sizeBytes + 1234L, store.usedBytes())
   }
 
   @Test
   fun aModelWithAPartAndAFullFileIsNotListedAsUnfinished() {
-    val small = LocalModel.fromId("smolvlm2-500m")!!
-    RandomAccessFile(store.file(small), "rw").use { it.setLength(small.sizeBytes) }
-    ModelFiles.partFile(store.file(small)).writeBytes(ByteArray(10))
+    store.file(smallModel).writeBytes(byteArrayOf(1, 2, 3))
+    ModelFiles.partFile(store.file(smallModel)).writeBytes(ByteArray(10))
     assertTrue(store.unfinishedDownloads().isEmpty())
   }
 
   @Test
   fun deletingTheOnlyModelFreesAllTheStorage() {
-    val small = LocalModel.fromId("smolvlm2-500m")!!
-    RandomAccessFile(store.file(small), "rw").use { it.setLength(small.sizeBytes) }
-    store.delete(small)
+    store.file(smallModel).writeBytes(byteArrayOf(1, 2, 3))
+    store.delete(smallModel)
     assertTrue(store.installedModels().isEmpty())
     assertEquals(0L, store.usedBytes())
   }

@@ -34,6 +34,12 @@ class ModelDownloader(
     data class Failed(val failure: ModelFiles.Failure) : Result
   }
 
+  private enum class CopyResult {
+    COMPLETE,
+    CANCELLED,
+    TOO_LARGE,
+  }
+
   /**
    * Downloads [url] to [target]. [onProgress] gets the bytes on disk so far, including a resumed
    * part. Returns [Result.Cancelled] when [isCancelled] turns true, and keeps the partial file so a
@@ -67,7 +73,14 @@ class ModelDownloader(
             else -> return Result.Failed(ModelFiles.Failure.HTTP)
           }
         if (!append) have = 0L
-        if (!copy(connection, part, append, have, onProgress, isCancelled)) return Result.Cancelled
+        when (copy(connection, part, append, have, expectedSize, onProgress, isCancelled)) {
+          CopyResult.COMPLETE -> Unit
+          CopyResult.CANCELLED -> return Result.Cancelled
+          CopyResult.TOO_LARGE -> {
+            part.delete()
+            return Result.Failed(ModelFiles.Failure.SIZE_MISMATCH)
+          }
+        }
       } catch (_: IOException) {
         return Result.Failed(ModelFiles.Failure.NETWORK)
       } finally {
@@ -78,30 +91,33 @@ class ModelDownloader(
     return if (failure == null) Result.Done else Result.Failed(failure)
   }
 
-  /** Returns false when cancelled. */
+  /** Stops before writing beyond [expectedSize]. */
   private fun copy(
     connection: HttpURLConnection,
     part: File,
     append: Boolean,
     startAt: Long,
+    expectedSize: Long,
     onProgress: (Long) -> Unit,
     isCancelled: () -> Boolean,
-  ): Boolean {
+  ): CopyResult {
     var total = startAt
     connection.inputStream.use { input ->
       FileOutputStream(part, append).use { output ->
         val buffer = ByteArray(BUFFER_SIZE)
         while (true) {
-          if (isCancelled()) return false
-          val read = input.read(buffer)
-          if (read < 0) break
+          if (isCancelled()) return CopyResult.CANCELLED
+          val remaining = expectedSize - total
+          val readLimit = minOf(buffer.size.toLong(), remaining + 1).toInt()
+          val read = input.read(buffer, 0, readLimit)
+          if (read < 0) return CopyResult.COMPLETE
+          if (read > remaining) return CopyResult.TOO_LARGE
           output.write(buffer, 0, read)
           total += read
           onProgress(total)
         }
       }
     }
-    return true
   }
 
   private companion object {

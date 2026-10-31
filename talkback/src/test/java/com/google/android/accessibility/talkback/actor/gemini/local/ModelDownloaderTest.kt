@@ -68,6 +68,7 @@ class ModelDownloaderTest {
     hash: String = sha,
     path: String = "/model",
     cancelAfter: Long = Long.MAX_VALUE,
+    onProgress: (Long) -> Unit = {},
   ): ModelDownloader.Result {
     var bytes = 0L
     return ModelDownloader()
@@ -76,7 +77,7 @@ class ModelDownloaderTest {
         target,
         size,
         hash,
-        { bytes = it },
+        { bytes = it; onProgress(it) },
         { bytes >= cancelAfter },
       )
   }
@@ -125,6 +126,16 @@ class ModelDownloaderTest {
   fun aWrongSizeIsRejected() {
     val result = run(size = data.size.toLong() + 1)
     assertEquals(ModelDownloader.Result.Failed(ModelFiles.Failure.SIZE_MISMATCH), result)
+  }
+
+  @Test
+  fun anOversizedResponseIsStoppedBeforeItExceedsTheExpectedSize() {
+    val expectedSize = data.size.toLong() - 1
+    var maxProgress = 0L
+    val result = run(size = expectedSize, onProgress = { maxProgress = maxOf(maxProgress, it) })
+    assertEquals(ModelDownloader.Result.Failed(ModelFiles.Failure.SIZE_MISMATCH), result)
+    assertTrue(maxProgress <= expectedSize)
+    assertFalse(ModelFiles.partFile(File(dir, "m.litertlm")).exists())
   }
 
   @Test
